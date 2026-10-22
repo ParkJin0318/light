@@ -16,7 +16,7 @@ import { QUIT_RESUME, SleepWatch, pickInterrupted } from "../src/session/auto-co
 import { extendOptions } from "../src/session/extensions.ts";
 import { sessionEnvironment, sessionOptions } from "../src/session/options.ts";
 import { DeviceStore } from "../src/stores.ts";
-import { parseServeStatus, parseStatus } from "../src/tailscale.ts";
+import { parseServeStatus, parseStatus, Tailscale } from "../src/tailscale.ts";
 import { pdfPageCount, safeFileName, sniffImage, Uploads } from "../src/uploads.ts";
 
 const TOKEN = "a".repeat(64);
@@ -374,6 +374,20 @@ describe("Tailscale", () => {
     }, 47615);
     expect(serve).toEqual({ configured: true, funnel: true, url: "https://mac.tail1234.ts.net" });
     expect(parseServeStatus({}, 47615)).toEqual({ configured: false, funnel: false });
+  });
+
+  test("데몬이 뜬 뒤에 설치한 Tailscale 도 다음에 잴 때 찾는다 — 시작하기 1단계가 그 순서다", async () => {
+    const { writeFileSync } = await import("node:fs");
+    const bin = mkdtempSync(join(tmpdir(), "light-tailscale-"));
+    const calls: string[] = [];
+    const tailscale = new Tailscale(async (command, args) => {
+      calls.push(command);
+      return { code: 0, stdout: args[0] === "status" ? JSON.stringify({ BackendState: "Running" }) : "{}", stderr: "" };
+    }, () => `${bin}:/usr/bin`, []);
+    expect(await tailscale.status()).toMatchObject({ installed: false });
+    writeFileSync(join(bin, "tailscale"), "");
+    expect(await tailscale.status()).toMatchObject({ installed: true, loggedIn: true });
+    expect(calls).toEqual([join(bin, "tailscale")]);
   });
 });
 

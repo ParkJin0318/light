@@ -98,15 +98,19 @@ export function parseServeStatus(json: JSONValue, port: number): ServeStatus {
 }
 
 export class Tailscale {
-  private cachedBinary: string | null | undefined;
+  constructor(
+    private readonly runner: CommandRunner = runCommand,
+    private readonly pathEnv: () => string | undefined = () => process.env.PATH,
+    private readonly candidates: readonly string[] = CANDIDATES,
+  ) {}
 
-  constructor(private readonly runner: CommandRunner = runCommand, private readonly pathEnv: () => string | undefined = () => process.env.PATH) {}
-
+  /**
+   * 잴 때마다 찾는다 — 시작하기 1단계는 데몬이 뜬 뒤에 Tailscale 을 설치한다.
+   * 못 찾은 것을 붙들어 두면 데몬을 다시 띄울 때까지 「설치되지 않음」이었다
+   */
   binary(): string | undefined {
-    if (this.cachedBinary !== undefined) return this.cachedBinary ?? undefined;
     const fromPath = (this.pathEnv() ?? "").split(":").map((directory) => `${directory}/tailscale`).find((candidate) => existsSync(candidate));
-    this.cachedBinary = CANDIDATES.find((candidate) => existsSync(candidate)) ?? fromPath ?? null;
-    return this.cachedBinary ?? undefined;
+    return this.candidates.find((candidate) => existsSync(candidate)) ?? fromPath;
   }
 
   async status(): Promise<TailscaleStatus> {
