@@ -20,4 +20,8 @@ contextBridge.exposeInMainWorld("light", {
   openExternal: (url: string) => ipcRenderer.invoke("external", url),
   chooseFolders: () => ipcRenderer.invoke("folder:choose"),
   onboarded: () => ipcRenderer.invoke("onboarded"),
+  update: () => ipcRenderer.invoke("update:get"),
+  onUpdate: (listener: (value: unknown) => void) => ipcRenderer.on("update", (_event, value) => listener(value)),
+  checkUpdate: () => ipcRenderer.invoke("update:check"),
+  restartToUpdate: () => ipcRenderer.invoke("update:restart"),
 });

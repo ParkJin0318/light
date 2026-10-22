@@ -62,7 +62,7 @@ The menu bar app starts the daemon, restarts it if it dies, and shows the daemon
 
 ## Getting started
 
-An unsigned arm64 dmg of the Mac app is on the [Releases](https://github.com/ParkJin0318/light/releases) page; the release notes say how to open it. To run from source instead:
+An unsigned arm64 dmg of the Mac app is on the [Releases](https://github.com/ParkJin0318/light/releases) page; the release notes say how to open it. Once light is in Applications it keeps itself up to date: it checks the latest release every hour, downloads and verifies a new version, and swaps it in when you quit light, or right away with "Restart to update" in the menu bar. v0.1.0 predates this, so install the next release by hand once. To run from source instead:
 
 ```sh
 git clone https://github.com/ParkJin0318/light.git
@@ -90,10 +90,11 @@ To run only the daemon, use `sh scripts/dev-daemon.sh`. It keeps its data in `.d
 | Variable | Purpose |
 |---|---|
 | `LIGHT_BUNDLE_ID` | Bundle ID (default `dev.light.mac`) |
-| `CSC_NAME` | Developer ID Application certificate. With `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` the build is signed and notarized; without them it is unsigned |
+| `CSC_NAME` | Developer ID Application certificate. With `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` the build is signed and notarized; without them it is ad-hoc signed |
 | `TARGET` | `dmg` (default) or `dir` |
+| `LIGHT_RELEASE_REPO` | `owner/name` whose releases the app updates from. Only builds made with it update themselves, and the script also writes the zip and `light-update.json` for the release |
 
-CI ([`.github/workflows/mac.yml`](.github/workflows/mac.yml)) runs the same script on a macOS runner for every push to the `release` branch (or when started by hand), and uploads the dmg to the workflow run. On the `release` branch it also publishes a GitHub release tagged with the version in `mac/package.json`, such as `v0.1.0`; a version that already has a release is skipped, so bump the version to ship a new one. The runner is Apple Silicon, so the build is arm64 only. To sign and notarize in CI, add the repository secrets `MAC_CERTIFICATE` (the .p12 in base64), `MAC_CERTIFICATE_PASSWORD`, `MAC_CERTIFICATE_NAME`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID`; without them the build is unsigned.
+CI ([`.github/workflows/mac.yml`](.github/workflows/mac.yml)) runs the same script on a macOS runner for every push to the `release` branch (or when started by hand), and uploads the dmg to the workflow run. On the `release` branch it also publishes a GitHub release tagged with the version in `mac/package.json`, such as `v0.1.0`, with the dmg, a zip of the app and the update manifest `light-update.json` that installed copies read; a version that already has a release is skipped, so bump the version to ship a new one. The runner is Apple Silicon, so the build is arm64 only. To sign and notarize in CI, add the repository secrets `MAC_CERTIFICATE` (the .p12 in base64), `MAC_CERTIFICATE_PASSWORD`, `MAC_CERTIFICATE_NAME`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID`; without them the build is ad-hoc signed.
 
 ## How it works
 
@@ -184,11 +185,12 @@ light starts the `claude` binary you installed, unmodified, through the Agent SD
 - Renaming the Mac changes its `ts.net` address, so the phone has to install light again. The Mac app tells you when this happens.
 - There is no terminal (PTY) view, code viewer, diff viewer, parallel worktrees, or support for agents other than Claude Code.
 - The interface is in Korean only.
+- Without a Developer ID certificate every release is ad-hoc signed, so its code signature changes with each update and macOS may ask again for permissions such as folder access.
 
 ## Development
 
 ```sh
-bun test            # tests for shared/ and daemon/
+bun test            # tests for shared/, daemon/ and mac/
 npm run typecheck   # every workspace
 npm run build       # the PWA
 npm run mac         # the Mac app against the dev checkout

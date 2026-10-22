@@ -39,6 +39,10 @@
       {
         "from": "../pwa/dist",
         "to": "pwa"
+      },
+      {
+        "from": "../.build/build.json",
+        "to": "build.json"
       }
     ],
     "mac": {

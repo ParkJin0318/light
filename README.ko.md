@@ -62,7 +62,7 @@ Claude Code 는 몇 분씩 일하다가 멈춰서 묻습니다. 이 명령을 �
 
 ## 시작하기
 
-Mac 앱은 [Releases](https://github.com/ParkJin0318/light/releases) 에 서명하지 않은 arm64 dmg 가 있습니다. 여는 법은 릴리스 노트에 있습니다. 소스에서 실행하려면 다음과 같습니다.
+Mac 앱은 [Releases](https://github.com/ParkJin0318/light/releases) 에 서명하지 않은 arm64 dmg 가 있습니다. 여는 법은 릴리스 노트에 있습니다. 응용 프로그램 폴더에 둔 light 는 스스로 업데이트합니다. 한 시간마다 최신 릴리스를 확인해 새 버전을 받아 대조해 두고, light 를 끌 때나 메뉴 막대의 「다시 시작해 업데이트」를 누를 때 바꿉니다. v0.1.0 에는 이 기능이 없어 다음 릴리스는 한 번 손으로 설치합니다. 소스에서 실행하려면 다음과 같습니다.
 
 ```sh
 git clone https://github.com/ParkJin0318/light.git
@@ -90,10 +90,11 @@ npm run mac     # 메뉴바 앱 — 데몬을 띄우고 시작하기를 엽니�
 | 변수 | 쓰임 |
 |---|---|
 | `LIGHT_BUNDLE_ID` | 번들 ID(기본 `dev.light.mac`) |
-| `CSC_NAME` | Developer ID Application 인증서. `APPLE_ID`·`APPLE_APP_SPECIFIC_PASSWORD`·`APPLE_TEAM_ID` 까지 있으면 서명·공증하고 없으면 서명하지 않은 빌드를 만듭니다 |
+| `CSC_NAME` | Developer ID Application 인증서. `APPLE_ID`·`APPLE_APP_SPECIFIC_PASSWORD`·`APPLE_TEAM_ID` 까지 있으면 서명·공증하고 없으면 ad-hoc 서명 빌드를 만듭니다 |
 | `TARGET` | `dmg`(기본) 또는 `dir` |
+| `LIGHT_RELEASE_REPO` | 앱이 업데이트를 받을 릴리스의 `owner/name`. 이것을 주고 지은 빌드만 스스로 업데이트하고, 스크립트가 릴리스에 올릴 zip 과 `light-update.json` 도 남깁니다 |
 
-CI([`.github/workflows/mac.yml`](.github/workflows/mac.yml))가 `release` 브랜치에 푸시할 때마다(손으로 돌릴 수도 있습니다) macOS 러너에서 같은 스크립트를 돌려 dmg 를 실행 결과에 올립니다. `release` 브랜치면 `mac/package.json` 의 버전을 태그로(`v0.1.0` 처럼) GitHub 릴리스도 냅니다. 이미 릴리스가 있는 버전은 건너뛰니 새 릴리스는 버전을 올려서 냅니다. 러너가 Apple Silicon 이라 arm64 빌드만 나옵니다. CI 에서 서명·공증하려면 저장소 시크릿 `MAC_CERTIFICATE`(.p12 의 base64)·`MAC_CERTIFICATE_PASSWORD`·`MAC_CERTIFICATE_NAME`·`APPLE_ID`·`APPLE_APP_SPECIFIC_PASSWORD`·`APPLE_TEAM_ID` 를 둡니다. 없으면 서명하지 않은 빌드입니다.
+CI([`.github/workflows/mac.yml`](.github/workflows/mac.yml))가 `release` 브랜치에 푸시할 때마다(손으로 돌릴 수도 있습니다) macOS 러너에서 같은 스크립트를 돌려 dmg 를 실행 결과에 올립니다. `release` 브랜치면 `mac/package.json` 의 버전을 태그로(`v0.1.0` 처럼) GitHub 릴리스도 냅니다. 릴리스에는 dmg 와 함께 설치본이 읽는 앱 zip 과 업데이트 명세 `light-update.json` 을 올립니다. 이미 릴리스가 있는 버전은 건너뛰니 새 릴리스는 버전을 올려서 냅니다. 러너가 Apple Silicon 이라 arm64 빌드만 나옵니다. CI 에서 서명·공증하려면 저장소 시크릿 `MAC_CERTIFICATE`(.p12 의 base64)·`MAC_CERTIFICATE_PASSWORD`·`MAC_CERTIFICATE_NAME`·`APPLE_ID`·`APPLE_APP_SPECIFIC_PASSWORD`·`APPLE_TEAM_ID` 를 둡니다. 없으면 ad-hoc 서명 빌드입니다.
 
 ## 작동 방식
 
@@ -184,11 +185,12 @@ light 는 여러분이 설치한 `claude` 바이너리를 Agent SDK 로 수정 �
 - Mac 이름이 바뀌면 `ts.net` 주소가 바뀌어 폰에서 다시 설치해야 합니다. Mac 앱이 알립니다.
 - 터미널(PTY) 화면, 코드 뷰어, diff 뷰어, 병렬 worktree, Claude Code 외 에이전트는 다루지 않습니다.
 - 화면은 한국어뿐입니다.
+- Developer ID 인증서 없이 낸 릴리스는 ad-hoc 서명이라 업데이트마다 코드 서명이 바뀌어 macOS 가 폴더 접근 같은 권한을 다시 물을 수 있습니다.
 
 ## 개발
 
 ```sh
-bun test            # shared/ 와 daemon/ 시험
+bun test            # shared/·daemon/·mac/ 시험
 npm run typecheck   # 워크스페이스 전부
 npm run build       # PWA
 npm run mac         # 개발 체크아웃으로 Mac 앱 실행

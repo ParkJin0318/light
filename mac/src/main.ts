@@ -4,13 +4,15 @@
  * - 메뉴바: 데몬·Tailscale·Claude Code 상태와 실행 중 세션·대기 요청 수
  * - 설정 창: 기기·설정·온보딩. 데몬의 로컬 API 를 데이터 폴더의 토큰으로 부른다
  * - 세션이 도는 동안 잠자기를 막고 로그인 시 실행을 건다
+ * - 릴리스 설치본은 새 버전을 받아 두었다가 끌 때 갈아 끼운다(update.ts)
  */
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, Notification, powerSaveBlocker, shell, Tray } from "electron";
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, net, Notification, powerSaveBlocker, shell, Tray } from "electron";
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import QRCode from "qrcode";
+import { AppUpdater, CHECK_INTERVAL_MS, FIRST_CHECK_DELAY_MS, realSeams, type UpdateState } from "./update";
 
 const repoRoot = join(__dirname, "..", "..");
 const dataDirectory = process.env.LIGHT_HOME ?? join(homedir(), "Library", "Application Support", "light");
@@ -45,6 +47,7 @@ let crashes: number[] = [];
 let status: DaemonStatus | undefined;
 let statusError: string | undefined;
 let sleepBlocker: number | undefined;
+let updater: AppUpdater | undefined;
 
 function readAppState(): AppState {
   try {
@@ -194,6 +197,36 @@ function watchAddress(): void {
   if (previous !== url) writeAppState({ lastPwaUrl: url });
 }
 
+// MARK: - 업데이트
+
+function startUpdater(): void {
+  updater = new AppUpdater({
+    changed: (state) => {
+      refreshMenu();
+      window?.webContents.send("update", state);
+    },
+    ready: (version) => {
+      if (!Notification.isSupported()) return;
+      new Notification({ title: `light ${version} 을 받아 두었습니다`, body: "light 를 끄면 바뀝니다. 메뉴 막대의 light 에서 바로 다시 시작할 수도 있습니다." }).show();
+    },
+  }, realSeams((url, init) => net.fetch(url, init), app.getPath("exe"), join(app.getPath("userData"), "updates"), app.isPackaged));
+  const receiver = updater;
+  void receiver.start().then(() => {
+    if (!receiver.receiving) return;
+    setTimeout(() => void receiver.check(), FIRST_CHECK_DELAY_MS);
+    setInterval(() => void receiver.check(), CHECK_INTERVAL_MS);
+  });
+}
+
+/** [다시 시작해 업데이트] — 턴이 도는 세션이 있으면 거절한다. 끄면 before-quit 이 갈아 끼울 셸을 띄운다 */
+async function restartToUpdate(): Promise<void> {
+  if (updater === undefined) throw new Error("받아 둔 버전이 없습니다.");
+  const running = await local<DaemonStatus>("GET", "status").then((value) => value.counts.running, () => 0);
+  if (running > 0) throw new Error(`세션 ${running}개가 턴을 도는 중입니다. 끝난 뒤 다시 누르십시오.`);
+  updater.restart();
+  app.quit();
+}
+
 // MARK: - 메뉴바
 
 function refreshMenu(): void {
@@ -212,6 +245,7 @@ function refreshMenu(): void {
   const claudeLine = claude === undefined ? "Claude Code: 확인 중"
     : !claude.installed ? "Claude Code: 설치되지 않음"
     : `Claude Code ${claude.version ?? ""} · ${claude.loggedIn === true ? `로그인됨${claude.subscriptionType !== undefined ? `(${claude.subscriptionType})` : ""}` : "로그인 필요"}`;
+  const staged = updater?.value.staged ?? null;
   tray.setTitle((counts?.pending ?? 0) > 0 ? ` ${counts!.pending}` : "");
   tray.setToolTip(daemonLine);
   tray.setContextMenu(Menu.buildFromTemplate([
@@ -219,6 +253,15 @@ function refreshMenu(): void {
     { label: tailscaleLine, enabled: false },
     { label: claudeLine, enabled: false },
     { type: "separator" },
+    ...(staged !== null ? [
+      {
+        label: `다시 시작해 업데이트(${staged})`,
+        click: () => void restartToUpdate().catch((error: unknown) => {
+          void dialog.showMessageBox({ type: "info", message: "업데이트하지 않았습니다", detail: error instanceof Error ? error.message : String(error) });
+        }),
+      },
+      { type: "separator" as const },
+    ] : []),
     ...(status?.pwaUrl != null ? [{ label: "PWA 주소 복사", click: () => clipboard.writeText(status!.pwaUrl!) }] : []),
     { label: "설정 열기…", click: () => openWindow("settings") },
     { label: "시작하기…", click: () => openWindow("onboarding") },
@@ -288,6 +331,10 @@ function registerIPC(): void {
     return result.canceled ? [] : result.filePaths;
   });
   ipcMain.handle("onboarded", () => writeAppState({ onboarded: true }));
+  ipcMain.handle("update:get", (): UpdateState | null => updater?.value ?? null);
+  // 확인은 곧바로 돌아온다 — 진행은 "update" 로 간다
+  ipcMain.handle("update:check", () => void updater?.check());
+  ipcMain.handle("update:restart", () => restartToUpdate());
 }
 
 // MARK: - 수명
@@ -302,6 +349,7 @@ if (!app.requestSingleInstanceLock()) {
     icon.setTemplateImage(true);
     tray = new Tray(icon);
     registerIPC();
+    startUpdater();
     refreshMenu();
     startDaemon();
     setInterval(() => void pollStatus(), 3_000);
@@ -349,6 +397,8 @@ if (!app.requestSingleInstanceLock()) {
     quitting = true;
     clearTimeout(restartTimer);
     if (sleepBlocker !== undefined) powerSaveBlocker.stop(sleepBlocker);
+    // 받아 둔 버전이 있으면 앱과 데몬이 내려간 뒤 갈아 끼운다
+    updater?.handOff(process.pid, daemon?.pid);
     // 데몬은 stdin 이 닫히면 세션을 모두 닫고 끝난다
     daemon?.stdin?.end();
     daemon?.kill("SIGTERM");

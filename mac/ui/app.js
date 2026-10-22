@@ -145,6 +145,17 @@ async function render() {
   $("#devices").replaceChildren(...(rows.length > 0 ? rows : [element("li", "group-row empty", "연결된 기기가 없습니다. 시작하기의 QR 로 폰에 설치하면 여기에 보입니다.")]));
 }
 
+/** 업데이트 — 확인·받기 진행은 메인이 "update" 로 보낸다 */
+function renderUpdate(state) {
+  $("#update-current").textContent = state?.current ?? "확인하는 중…";
+  $("#update-detail").textContent = state?.detail ?? "";
+  $('[data-action="check-update"]').hidden = state?.status === "off";
+  $('[data-action="check-update"]').disabled = state?.canCheck !== true;
+  const restart = $('[data-action="restart-update"]');
+  restart.hidden = state?.staged == null;
+  restart.textContent = state?.staged == null ? restart.dataset.label : `다시 시작해 업데이트(${state.staged})`;
+}
+
 function renderSettings() {
   if (settings === null) return;
   for (const input of $$("[data-setting]")) {
@@ -231,6 +242,15 @@ const actions = {
     const chosen = await bridge.chooseFolders();
     if (chosen.length > 0) await save({ projectFolders: [...new Set([...settings.projectFolders, ...chosen])] });
   },
+  "check-update": () => bridge.checkUpdate(),
+  // 거절하면(턴이 도는 세션) 까닭을 상태 줄에 둔다 — 다음 진행이 오면 덮인다
+  "restart-update": async () => {
+    try {
+      await bridge.restartToUpdate();
+    } catch (error) {
+      $("#update-detail").textContent = errorText(error);
+    }
+  },
 };
 
 for (const button of $$("[data-action]")) {
@@ -304,9 +324,11 @@ bridge.onStatus((value) => {
   void render();
 });
 bridge.onView((view) => show(view));
+bridge.onUpdate((value) => renderUpdate(value));
 
 show(location.hash === "#settings" ? "settings" : "onboarding");
 void refresh();
+bridge.update().then(renderUpdate).catch(() => undefined);
 bridge.settings().then((value) => {
   settings = value;
   renderSettings();
