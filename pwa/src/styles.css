@@ -1,0 +1,13 @@
+/*
+ * light 화면 — 토큰(색·글자·간격·모서리·움직임)은 styles/tokens.css, 부품은 base.css, 화면별 모양은 나머지 파일이다.
+ * 바탕·면·잉크로 칠하고 노란 등은 Claude 가 답을 기다릴 때에만 켠다. 시스템 다크 모드와 글자 크기 설정을 따른다.
+ * 머리와 도크는 본문 위에 떠 있고, 자주 누르는 것(보내기·승인·모드·모델·새 세션)은 도크에 둔다. 넓은 화면은 2열
+ */
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/layout.css";
+@import "./styles/list.css";
+@import "./styles/chat.css";
+@import "./styles/dock.css";
+@import "./styles/sheet.css";
+@import "./styles/forms.css";

@@ -1,0 +1,238 @@
+/*
+ * 토큰 — 원색(--gray-*, --amber-* …)은 값을 이름 짓고 컴포넌트에서 쓰지 않는다. 컴포넌트는 역할 이름(--color-*)만 쓴다.
+ * 램프는 OKLCH 에서 색상(H)을 고정하고 단계마다 역할 하나를 맡는다(Radix 12 단계 번호, 쓰지 않는 단계는 짓지 않는다).
+ * 어두운 테마는 같은 번호의 따로 지은 램프다. 대비는 culori·APCA 로 잰 값이다.
+ * 노란 등(amber)은 Claude 가 답을 기다릴 때에만 켠다. 주 버튼은 잉크(gray-12) 채움이고 색이 아니다
+ */
+:root {
+  color-scheme: light dark;
+
+  /* 따뜻한 회색, H 75 */
+  --gray-1: oklch(0.995 0.002 75);  /* #fefdfc 면·떠 있는 면 */
+  --gray-2: oklch(0.968 0.004 75);  /* #f6f4f1 바탕 */
+  --gray-3: oklch(0.938 0.005 75);  /* #eceae7 우물 — 입력·내 말·코드 */
+  --gray-4: oklch(0.905 0.006 75);  /* #e2dfdb 눌림·고름 */
+  --gray-6: oklch(0.872 0.007 75);  /* #d8d4d0 구분선 */
+  --gray-7: oklch(0.82 0.008 75);   /* #c7c3be 테두리 */
+  --gray-8: oklch(0.72 0.009 75);   /* #a8a49e 진한 테두리·꺼진 등 */
+  --gray-9: oklch(0.6 0.01 75);     /* #847f7a 안내 글자(placeholder)·꺼진 것·보조 그림 — 읽어야 하는 글에는 쓰지 않는다(4.5:1 미달) */
+  --gray-11: oklch(0.48 0.01 75);   /* #615d57 보조 글자 */
+  --gray-12: oklch(0.225 0.008 75); /* #1e1b18 본문·잉크 */
+
+  /* 노란 등, H 86 */
+  --amber-3: oklch(0.962 0.0299 86);  /* #fbf2dc 등 면 */
+  --amber-4: oklch(0.938 0.0505 86);  /* #fae9c5 등 눌림 */
+  --amber-5: oklch(0.912 0.0743 86);  /* #f8dfaa 등 고름·버튼 */
+  --amber-6: oklch(0.88 0.0971 86);   /* #f4d38c 등 테두리 */
+  --amber-7: oklch(0.83 0.1257 86);   /* #ecc15f 등 진한 테두리 */
+  --amber-9: oklch(0.845 0.1661 86);  /* #fcc324 등 채움 */
+  --amber-11: oklch(0.5 0.0839 86);   /* #795f23 등 글자 */
+
+  /* 실행(초록) H 152, 위험(빨강) H 27 — 그리는 역할만 */
+  --green-3: oklch(0.962 0.0182 152); /* #eaf6ed */
+  --green-9: oklch(0.64 0.1313 152);  /* #42a263 */
+  --green-11: oklch(0.48 0.101 152);  /* #286d40 */
+  --red-3: oklch(0.962 0.0041 27);    /* #f5f1f1 */
+  --red-6: oklch(0.88 0.0254 27);     /* #e8d2ce */
+  --red-9: oklch(0.555 0.2036 27);    /* #d02727 */
+  --red-11: oklch(0.5 0.1732 27);     /* #b12926 */
+
+  /* 역할 — 면 */
+  --color-bg-page: var(--gray-2);
+  --color-bg-surface: var(--gray-1);
+  --color-bg-raised: var(--gray-1);
+  --color-bg-sunken: var(--gray-3);
+  --color-bg-pressed: var(--gray-4);
+  --color-bg-selected: var(--gray-4);
+  --color-bg-material: oklch(0.968 0.004 75 / 0.86);
+  --color-bg-scrim: oklch(0.2 0.01 75 / 0.32);
+  /* 역할 — 글자 */
+  --color-text-primary: var(--gray-12);
+  --color-text-secondary: var(--gray-11);
+  --color-text-tertiary: var(--gray-9);
+  --color-text-on-ink: var(--gray-1);
+  /* 역할 — 선 */
+  --color-separator: var(--gray-6);
+  --color-border-subtle: oklch(0 0 0 / 0.06); /* 그림자 고리 — 면의 테 */
+  --color-border: var(--gray-7);
+  --color-border-strong: var(--gray-8);
+  --color-focus-ring: var(--gray-12);
+  /* 역할 — 잉크(주 버튼) */
+  --color-ink-solid: var(--gray-12);
+  --color-ink-solid-pressed: oklch(0.32 0.008 75);
+  --color-ink-off: var(--gray-6);
+  /* 역할 — 등(답을 기다림) */
+  --color-lamp-subtle: var(--amber-3);
+  --color-lamp-pressed: var(--amber-4);
+  --color-lamp-selected: var(--amber-5);
+  --color-lamp-border: var(--amber-6);
+  --color-lamp-border-strong: var(--amber-7);
+  --color-lamp-solid: var(--amber-9);
+  --color-lamp-text: var(--amber-11);
+  --color-text-on-lamp: oklch(0.225 0.008 75);
+  --color-lamp-glow: oklch(0.845 0.1661 86 / 0.32);
+  /* 역할 — 상태 */
+  --color-success-subtle: var(--green-3);
+  --color-success-solid: var(--green-9);
+  --color-success-text: var(--green-11);
+  --color-danger-subtle: var(--red-3);
+  --color-danger-border: var(--red-6);
+  --color-danger-solid: var(--red-9);
+  --color-danger-text: var(--red-11);
+  --color-text-on-danger: oklch(1 0 0);
+  /* 역할 — 사진 위에 얹는 단추 */
+  --color-bg-overlay: oklch(0.15 0 0 / 0.62);
+  --color-text-on-overlay: oklch(1 0 0);
+
+  /* 그림자 — 높이만 그림자로 보이고 구조는 선으로 가른다 */
+  --shadow-border:
+    0 0 0 1px var(--color-border-subtle),
+    0 1px 2px -1px oklch(0 0 0 / 0.06),
+    0 2px 4px 0 oklch(0 0 0 / 0.04);
+  --shadow-float:
+    0 0 0 1px oklch(0 0 0 / 0.05),
+    0 4px 8px -2px oklch(0 0 0 / 0.06),
+    0 12px 28px -6px oklch(0 0 0 / 0.12);
+  --shadow-lamp:
+    0 0 0 1px var(--amber-6),
+    0 2px 6px -2px oklch(0.6 0.12 86 / 0.18),
+    0 10px 30px -8px var(--color-lamp-glow);
+  --image-outline: oklch(0 0 0 / 0.1);
+
+  /* 글자 — iOS 글자 크기(Dynamic Type)를 끝까지 따르되 한 단계 작게 쓴다. 기본(Large)의 17px 이 16px 가 되는 비율이다.
+     글자 크기는 1rem 대신 --rem 으로 잰다. 입력칸은 16px 아래로 내리지 않는다(iOS 가 초점에서 화면을 키운다) */
+  --text-scale: calc(16 / 17);
+  --rem: calc(1rem * var(--text-scale));
+  --font-sans: -apple-system, system-ui, "Apple SD Gothic Neo", "Pretendard", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, "D2Coding", monospace;
+  --text-display: calc(2 * var(--rem));
+  --text-title: calc(1.25 * var(--rem));
+  --text-body: var(--rem);
+  --text-sub: calc(0.875 * var(--rem));
+  --text-micro: calc(0.75 * var(--rem));
+
+  /* 간격 — 여백은 px 로 두고 글자가 커져도 늘리지 않는다 */
+  --gutter: 16px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --column: 46rem;
+  --pad-l: max(var(--gutter), env(safe-area-inset-left));
+  --pad-r: max(var(--gutter), env(safe-area-inset-right));
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+
+  /* 모서리 — 역할마다 하나. 겹친 면은 바깥 = 안 + 안쪽 여백이라
+     시트(34) = 안의 묶음 카드(18) + 본문 여백(16), 떠 있는 카드(24) = 안의 우물(10) + 안쪽 여백(14) */
+  --radius-sheet: 34px;
+  --radius-float: 24px;   /* 입력 카드·답을 기다리는 카드·이어받기 카드 */
+  --radius-bubble: 20px;
+  --radius-card: 18px;    /* 묶음 카드 */
+  --radius-panel: 14px;   /* 대화 흐름 속 카드 — 도구·상자·대기열 */
+  --radius-well: 12px;    /* 입력칸·우물 */
+  --radius-inner: 10px;   /* 떠 있는 카드 안의 우물·선택지 */
+  --radius-tile: 9px;
+  --radius-pill: 999px;
+
+  /* 움직임 */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --dur-press: 150ms;
+  --dur-enter: 300ms;
+  --dur-exit: 150ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gray-1: oklch(0.16 0.004 75);   /* #0e0d0b 바탕 */
+    --gray-2: oklch(0.205 0.005 75);  /* #191715 면 */
+    --gray-3: oklch(0.24 0.006 75);   /* #211f1c 떠 있는 면 */
+    --gray-4: oklch(0.275 0.007 75);  /* #2a2724 우물·눌림 */
+    --gray-6: oklch(0.315 0.007 75);  /* #34312e 구분선·고름 */
+    --gray-7: oklch(0.38 0.008 75);   /* #45423e 테두리 */
+    --gray-8: oklch(0.46 0.008 75);   /* #5b5753 진한 테두리 */
+    --gray-9: oklch(0.6 0.008 75);    /* #83807b 안내 글자 */
+    --gray-11: oklch(0.78 0.008 75);  /* #bab7b2 보조 글자 */
+    --gray-12: oklch(0.95 0.004 75);  /* #f0eeeb 본문·잉크 */
+
+    --amber-3: oklch(0.235 0.0192 86); /* #221e14 */
+    --amber-4: oklch(0.27 0.0254 86);  /* #2c2618 */
+    --amber-5: oklch(0.305 0.0325 86); /* #362e1c */
+    --amber-6: oklch(0.35 0.0401 86);  /* #443921 */
+    --amber-7: oklch(0.43 0.0528 86);  /* #5d4e2d */
+    --amber-9: oklch(0.83 0.1495 86);  /* #f2bf40 */
+    --amber-11: oklch(0.84 0.1204 86); /* #edc568 */
+
+    --green-3: oklch(0.24 0.0221 152); /* #17221a */
+    --green-9: oklch(0.72 0.1288 152); /* #5fbb7c */
+    --green-11: oklch(0.8 0.1263 152); /* #7bd595 */
+    --red-3: oklch(0.245 0.0419 27);   /* #321815 */
+    --red-6: oklch(0.38 0.0852 27);    /* #682e29 */
+    --red-9: oklch(0.62 0.2021 27);    /* #e7423c */
+    --red-11: oklch(0.76 0.0859 27);   /* #e39c94 */
+
+    /* 어두우면 위로 뜬 면일수록 밝다 */
+    --color-bg-page: var(--gray-1);
+    --color-bg-surface: var(--gray-2);
+    --color-bg-raised: var(--gray-3);
+    --color-bg-sunken: var(--gray-4);
+    --color-bg-pressed: var(--gray-4);
+    --color-bg-selected: var(--gray-6);
+    --color-bg-material: oklch(0.16 0.004 75 / 0.84);
+    --color-bg-scrim: oklch(0 0 0 / 0.56);
+    --color-ink-solid-pressed: oklch(0.86 0.004 75);
+    --color-text-on-ink: var(--gray-1);
+    --color-ink-off: var(--gray-6);
+    --color-text-on-lamp: oklch(0.16 0.004 75);
+    --color-lamp-glow: oklch(0.83 0.1495 86 / 0.16);
+    --color-border-subtle: oklch(1 0 0 / 0.08);
+    /* 어두운 빨강 채움(#e7423c)에 흰 글자는 4.0:1 이라 짙은 글자(4.8:1)를 얹는다 */
+    --color-text-on-danger: var(--gray-1);
+
+    /* 어두운 바탕에서는 깊이 그림자가 사라진다 — 흰 테 하나를 둔다 */
+    --shadow-border: 0 0 0 1px var(--color-border-subtle);
+    --shadow-float: 0 0 0 1px oklch(1 0 0 / 0.09), 0 16px 40px -8px oklch(0 0 0 / 0.6);
+    --shadow-lamp: 0 0 0 1px var(--amber-7), 0 12px 36px -10px var(--color-lamp-glow);
+    --image-outline: oklch(1 0 0 / 0.1);
+  }
+}
+
+/* P3 화면에서는 등과 실행 점을 더 선명하게 — sRGB 값을 먼저 두었다 */
+@media (color-gamut: p3) {
+  :root {
+    --amber-9: oklch(0.845 0.1919 86);
+    --green-9: oklch(0.64 0.1873 152);
+  }
+}
+@media (color-gamut: p3) and (prefers-color-scheme: dark) {
+  :root {
+    --amber-9: oklch(0.83 0.1767 86);
+    --green-9: oklch(0.72 0.1897 152);
+  }
+}
+
+/* 대비 높이기 — 테마마다 따로, 보조 글자와 선을 바탕에서 더 멀리 */
+@media (prefers-contrast: more) {
+  :root {
+    --color-text-secondary: oklch(0.33 0.01 75);
+    --color-text-tertiary: oklch(0.42 0.01 75);
+    --color-separator: var(--gray-8);
+    --color-border: oklch(0.55 0.01 75);
+  }
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root {
+    --color-text-secondary: oklch(0.9 0.006 75);
+    --color-text-tertiary: oklch(0.78 0.008 75);
+    --color-separator: var(--gray-8);
+    --color-border: oklch(0.62 0.008 75);
+  }
+}
+
+@media (min-width: 900px) {
+  :root { --gutter: 24px; }
+}

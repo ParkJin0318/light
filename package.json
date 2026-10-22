@@ -1,0 +1,20 @@
+{
+  "name": "light",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "daemon",
+    "pwa",
+    "mac"
+  ],
+  "scripts": {
+    "test": "bun test ./shared ./daemon",
+    "typecheck": "tsc -p shared && tsc -p daemon && tsc -p pwa && tsc -p mac",
+    "build": "npm run build -w pwa",
+    "daemon": "bun daemon/src/main.ts",
+    "mac": "npm run start -w mac"
+  },
+  "devDependencies": {
+    "playwright": "1.59.1"
+  }
+}

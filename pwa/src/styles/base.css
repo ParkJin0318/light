@@ -1,0 +1,221 @@
+/*
+ * 바탕 — 글자, 초점, 버튼·칩·입력칸 같은 부품. 화면별 모양은 옆 파일에 둔다.
+ * 틀(머리·도크·막대)의 크기는 --u 로 잰다. 본문은 --rem 이라 끝까지 커지고, 틀은 iOS 막대처럼 가장 큰 일반 크기(23px 의 한 단계 아래)에서 멈춘다
+ */
+/* 스크롤 막대는 앱처럼 어디에도 그리지 않는다 — 스크롤은 그대로 된다 */
+* { box-sizing: border-box; scrollbar-width: none; }
+::-webkit-scrollbar { display: none; }
+
+html {
+  /* iOS 의 시스템 글자 크기를 따른다 — 글자 크기는 이것을 한 단계 줄인 --rem 으로 잰다(tokens.css) */
+  font: -apple-system-body;
+  font-family: var(--font-sans);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  height: 100%;
+  --u: var(--rem);
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  /* 한국어는 낱말 안에서 줄을 바꾸지 않는다 — 긴 영문·경로는 아래 overflow-wrap 이 끊는다 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+#root { height: 100%; }
+
+h1, h2, h3, h4, p, ol, ul, dl, dd, figure { margin: 0; }
+button, input, textarea, select { font: inherit; color: inherit; letter-spacing: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+button:disabled { cursor: default; }
+input[type="search"] { -webkit-appearance: none; appearance: none; }
+input[type="search"]::-webkit-search-cancel-button { display: none; }
+img { display: block; max-width: 100%; }
+pre, code, kbd, samp { font-family: var(--font-mono); }
+::selection { background: var(--color-lamp-selected); color: var(--color-text-primary); }
+
+/* 초점 — 키보드로 옮길 때만 고리를 그린다. 잉크 색이라 바탕·면·등 어디서나 3:1 을 넘는다 */
+:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+:focus:not(:focus-visible) { outline: none; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* 아이콘 — 선 굵기는 화면 픽셀로 고정하고 옆 글자의 굵기를 따른다. 기본은 600 글자 옆의 2px,
+   보통 굵기 글 속의 그림은 1.5px, 굵은 글 옆이나 홀로 선 강조(체크·닫기)는 2.5px */
+.icon { width: 1.25em; height: 1.25em; flex: none; stroke-width: 2px; }
+.icon :is(path, circle, rect, line, polyline, polygon, ellipse) { vector-effect: non-scaling-stroke; }
+.icon.small { width: 1em; height: 1em; }
+.icon.bold { stroke-width: 2.5px; }
+
+/* 틀 크기 단위 */
+.chrome { --u: calc(min(1rem, 23px) * var(--text-scale)); font-size: var(--u); }
+
+/* 버튼 — 모양은 알약 하나, 채움은 잉크·우물·투명 셋. 누르면 0.96 으로 줄고 꺼진 버튼은 줄지 않는다 */
+.btn {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.45em;
+  min-height: calc(2.75 * var(--u)); padding: 0 calc(1.1 * var(--u));
+  border: 1px solid transparent; border-radius: var(--radius-pill);
+  font-weight: 600; line-height: 1.2; text-align: center; text-decoration: none; white-space: nowrap;
+  transition-property: scale, background-color, color, opacity;
+  transition-duration: var(--dur-press);
+  transition-timing-function: ease-out;
+}
+.btn:not(:disabled, [aria-disabled="true"]):active { scale: 0.96; }
+.btn:disabled { opacity: 0.4; }
+.btn .icon { width: 1.15em; height: 1.15em; stroke-width: 2px; }
+.btn.has-leading-icon { padding-inline-start: calc(0.95 * var(--u)); }
+.btn.has-trailing-icon { padding-inline-end: calc(0.95 * var(--u)); }
+.btn.block { width: 100%; }
+.btn.small { min-height: calc(2.25 * var(--u)); padding: 0 calc(0.9 * var(--u)); font-size: var(--text-sub); }
+.btn.small::after { content: ""; position: absolute; inset: -4px 0; }
+
+.btn-primary { background: var(--color-ink-solid); color: var(--color-text-on-ink); }
+.btn-primary:not(:disabled):active { background: var(--color-ink-solid-pressed); }
+.btn-secondary { background: var(--color-bg-sunken); color: var(--color-text-primary); }
+.btn-secondary:not(:disabled):active { background: var(--color-bg-selected); }
+.btn-ghost { color: var(--color-text-primary); padding-inline: calc(0.8 * var(--u)); }
+.btn-ghost:not(:disabled):active { background: var(--color-bg-pressed); }
+/* 거절 — 위험 색은 글자에만, 채움은 우물 그대로라 주 버튼으로 읽히지 않는다 */
+.btn-danger { background: var(--color-bg-sunken); color: var(--color-danger-text); }
+.btn-danger:not(:disabled):active { background: var(--color-bg-selected); }
+.btn-ghost.danger { color: var(--color-danger-text); }
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:not(:disabled):hover { background: var(--color-ink-solid-pressed); }
+  :is(.btn-secondary, .btn-danger):not(:disabled):hover { background: var(--color-bg-selected); }
+  .btn-ghost:not(:disabled):hover { background: var(--color-bg-pressed); }
+}
+
+/* 아이콘 버튼 — 보이는 원은 작아도 누르는 자리는 44px */
+.icon-btn {
+  position: relative;
+  display: inline-grid; place-items: center; flex: none;
+  width: calc(2.75 * var(--u)); height: calc(2.75 * var(--u)); border-radius: var(--radius-pill);
+  color: var(--color-text-primary);
+  transition-property: scale, background-color, color;
+  transition-duration: var(--dur-press);
+  transition-timing-function: ease-out;
+}
+.icon-btn .icon { width: calc(1.375 * var(--u)); height: calc(1.375 * var(--u)); stroke-width: 2px; }
+.icon-btn:not(:disabled):active { scale: 0.96; background: var(--color-bg-pressed); }
+.icon-btn:disabled { opacity: 0.4; }
+.icon-btn.tinted { background: var(--color-bg-sunken); }
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:not(:disabled):hover { background: var(--color-bg-pressed); }
+}
+
+/* 칩 — 모드·모델·제안. 보이는 높이는 32px, 누르는 자리는 위아래로 넓힌다 */
+.chip {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 0.35em; min-width: 0; max-width: 100%;
+  min-height: calc(2 * var(--u)); padding: 0 calc(0.75 * var(--u));
+  border: 1px solid transparent; border-radius: var(--radius-pill);
+  background: var(--color-bg-sunken); color: var(--color-text-primary);
+  font-size: calc(0.875 * var(--u)); font-weight: 600; line-height: 1.2; white-space: nowrap;
+  transition-property: scale, background-color;
+  transition-duration: var(--dur-press);
+  transition-timing-function: ease-out;
+}
+.chip::after { content: ""; position: absolute; inset: -6px -2px; }
+.chip .icon { width: 1.1em; height: 1.1em; stroke-width: 2px; color: var(--color-text-secondary); }
+.chip .chip-label { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.chip:not(:disabled):active { scale: 0.96; background: var(--color-bg-selected); }
+.chip.quiet { background: transparent; color: var(--color-text-secondary); }
+@media (hover: hover) and (pointer: fine) {
+  .chip:not(:disabled):hover { background: var(--color-bg-selected); }
+}
+
+/* 입력칸 — 우물 면에 앉고 글자는 16px 아래로 내리지 않는다(iOS 확대 방지) */
+.field-input {
+  width: 100%; min-height: calc(2.75 * var(--u));
+  padding: calc(0.55 * var(--u)) calc(0.9 * var(--u));
+  border: 1px solid transparent; border-radius: var(--radius-well);
+  background: var(--color-bg-sunken); color: var(--color-text-primary);
+  font-size: max(16px, var(--u)); line-height: 1.4;
+  transition: border-color var(--dur-press) ease-out;
+}
+.field-input:focus-visible, .field-input:focus { outline: none; border-color: var(--color-focus-ring); }
+.field-input::placeholder, textarea::placeholder { color: var(--color-text-tertiary); opacity: 1; }
+textarea.field-input { resize: vertical; }
+
+/* 검색칸 — 돋보기 아이콘과 지우기 단추를 품은 알약 */
+.search {
+  position: relative; display: flex; align-items: center; min-width: 0;
+  min-height: calc(2.75 * var(--u)); border-radius: var(--radius-pill);
+  background: var(--color-bg-sunken); color: var(--color-text-secondary);
+  transition: box-shadow var(--dur-press) ease-out;
+}
+.search:focus-within { box-shadow: 0 0 0 2px var(--color-focus-ring); }
+.search > .icon { position: absolute; inset-inline-start: calc(0.9 * var(--u)); pointer-events: none; }
+.search input {
+  flex: 1; min-width: 0; height: 100%; min-height: calc(2.75 * var(--u));
+  padding-block: 0; padding-inline: calc(2.5 * var(--u)) calc(0.5 * var(--u));
+  border: 0; background: transparent; color: var(--color-text-primary);
+  font-size: max(16px, var(--u)); outline: none;
+}
+.search input::placeholder { color: var(--color-text-tertiary); }
+.search .icon-btn { width: calc(2.25 * var(--u)); height: calc(2.25 * var(--u)); margin-inline-end: calc(0.25 * var(--u)); color: var(--color-text-tertiary); }
+.search .icon-btn .icon { width: 1.1em; height: 1.1em; }
+
+/* 돌아가는 고리 — 불러오기·보내기. 움직임 줄이기에서도 남긴다(진행 표시) */
+.spinner {
+  display: inline-block; flex: none; width: 1em; height: 1em; border-radius: 50%;
+  border: 2px solid currentColor; border-inline-end-color: transparent; opacity: 0.75;
+  animation: spin 0.8s linear infinite;
+}
+
+/* 상태 점 — 색만으로 뜻을 싣지 않는다. 옆에 늘 글자가 있다 */
+.dot { position: relative; display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-tertiary); }
+.dot.run { background: var(--color-success-solid); }
+.dot.lamp { background: var(--color-lamp-solid); box-shadow: 0 0 0 1px oklch(0.5 0.08 86 / 0.35); }
+.dot.danger { background: var(--color-danger-solid); }
+.dot.idle { background: transparent; box-shadow: inset 0 0 0 2px var(--color-success-solid); }
+.dot.off { background: transparent; box-shadow: inset 0 0 0 1.5px var(--color-border-strong); }
+
+/* 반짝이는 글자 — 일하는 중·생각하는 중. 움직임 줄이기에서는 멈춘 보조 글자다 */
+.shimmer { color: var(--color-text-secondary); }
+@media (prefers-reduced-motion: no-preference) {
+  .shimmer {
+    background: linear-gradient(90deg, var(--color-text-secondary) 0%, var(--color-text-secondary) 40%, var(--color-text-primary) 50%, var(--color-text-secondary) 60%, var(--color-text-secondary) 100%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shimmer 2.2s linear infinite;
+  }
+}
+
+kbd {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 1.75em; padding: 0.05em 0.45em;
+  border-radius: 6px; background: var(--color-bg-sunken); box-shadow: inset 0 -1px 0 var(--color-separator);
+  font-size: 0.875em; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+
+/* 들어오는 묶음 — 한 번만 도는 등장. 움직임 줄이기에서는 투명도만 바꾼다 */
+.enter { animation: fade-in var(--dur-enter) ease-out both; }
+@media (prefers-reduced-motion: no-preference) {
+  .enter { animation-name: fade-in-up; }
+}
+
+/* 움직임 줄이기 — 눌림의 크기 변화·화살표 돌기·스위치 손잡이 미끄러짐은 멈추고 상태만 바꾼다. 색·투명도 전환은 남긴다 */
+@media (prefers-reduced-motion: reduce) {
+  :is(.btn, .icon-btn, .chip, .fab, .send-button, .toast-action, .jump-latest, .code-copy):active { scale: none !important; }
+  .disclosure, .pull .icon, .switch::before { transition: none !important; }
+}
+
+@keyframes spin { to { rotate: 1turn; } }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes fade-in-up { from { opacity: 0; translate: 0 12px; filter: blur(4px); } }

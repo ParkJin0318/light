@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "light",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["scripts/dev-daemon.sh"],
+      "port": 47615
+    }
+  ]
+}

@@ -1,0 +1,273 @@
+/*
+ * light 설정 창 — 색·글자·간격·모서리·움직임은 PWA 와 같은 토큰(tokens.css)이고 부품도 PWA 와 같은 이름·값이다.
+ * 알약 단추(주 단추는 잉크 채움, 화면마다 하나), 묶음 카드와 줄, 스위치. 데스크톱이라 글자만 14px 기준으로 줄였다
+ */
+:root {
+  /* 데스크톱 밀도 — 본문 14px, 보조 13px, 가장 작은 글 12px */
+  --text-display: calc(26rem / 14);
+  --text-body: 1rem;
+  --text-sub: calc(13rem / 14);
+  --text-micro: calc(12rem / 14);
+  --gutter: 24px;
+}
+
+* { box-sizing: border-box; }
+/* hidden 은 부품의 display(flex·block)보다 앞선다 — 숨긴 QR·오류 띠가 비어 보이지 않게 */
+[hidden] { display: none !important; }
+
+html {
+  height: 100%;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+h1, h2, p, ol, ul, dl, dd, pre { margin: 0; }
+button, input, select { font: inherit; color: inherit; letter-spacing: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+button:disabled { cursor: default; }
+img { display: block; max-width: 100%; }
+::selection { background: var(--color-lamp-selected); color: var(--color-text-primary); }
+
+/* 초점 — 키보드로 옮길 때만 고리를 그린다(PWA 와 같은 잉크 고리) */
+:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+:focus:not(:focus-visible) { outline: none; }
+
+/* 아이콘 — lucide 그림을 한 장(sprite)에 두고 쓴다. 선 굵기는 옆 글자를 따른다: 600 글자 옆 2px, 홀로 선 체크 2.5px */
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.sprite :is(path, circle) { vector-effect: non-scaling-stroke; }
+.icon {
+  width: 1.15em; height: 1.15em; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round;
+}
+.icon.bold { stroke-width: 2.5px; }
+.mono { font-family: var(--font-mono); font-size: 0.9286em; }
+
+/* 머리 — 창의 제목 막대 자리. 끌어 옮기는 면이고 신호등 단추 자리를 비운다. 본문이 밑에 들어오면 선을 켠다 */
+.toolbar {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  height: 52px; padding-inline: 80px;
+  border-bottom: 1px solid transparent;
+  -webkit-app-region: drag; user-select: none;
+  transition-property: background-color, border-color;
+  transition-duration: var(--dur-press);
+  transition-timing-function: ease-out;
+}
+.toolbar[data-edge="true"] { background-color: var(--color-bg-material); border-bottom-color: var(--color-separator); }
+
+/* 화면 고르기 — 알약 우물 안의 알약 둘. 자주 누르는 것이라 색만 150ms 로 바꾼다 */
+.segmented {
+  display: inline-flex; gap: 2px; padding: 2px;
+  border-radius: var(--radius-pill); background: var(--color-bg-sunken);
+  -webkit-app-region: no-drag;
+}
+.segmented button {
+  min-height: 28px; padding: 0 16px;
+  border: 1px solid transparent; border-radius: var(--radius-pill);
+  color: var(--color-text-secondary); font-size: var(--text-sub); font-weight: 600; line-height: 1.2;
+  transition-property: background-color, color, box-shadow;
+  transition-duration: var(--dur-press);
+  transition-timing-function: ease-out;
+}
+.segmented button[aria-selected="true"] { background: var(--color-bg-raised); color: var(--color-text-primary); box-shadow: var(--shadow-border); }
+@media (hover: hover) and (pointer: fine) {
+  .segmented button:not([aria-selected="true"]):hover { color: var(--color-text-primary); }
+}
+
+/* 본문 — 가운데 단 하나 */
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.column { width: 100%; max-width: calc(var(--column) + 2 * var(--gutter)); margin-inline: auto; padding: 4px var(--gutter) 40px; }
+
+/* 오류 띠 — 무엇이 안 되는지와 할 일을 한 줄로 */
+.banner {
+  display: flex; align-items: flex-start; gap: 10px; margin-top: 8px; padding: 10px 14px;
+  border: 1px solid transparent; border-radius: var(--radius-well);
+  background: var(--color-danger-subtle); color: var(--color-danger-text);
+  font-weight: 600; line-height: 1.4; text-wrap: pretty; overflow-wrap: anywhere;
+}
+.banner .icon { margin-top: 0.1em; }
+
+/* 큰 제목 */
+.hero { padding: 16px 4px 0; }
+.page-title { font-size: var(--text-display); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; text-wrap: balance; }
+.hero-sub { margin-top: 6px; font-size: var(--text-sub); color: var(--color-text-secondary); line-height: 1.45; text-wrap: pretty; }
+
+/* 묶음 — 이름, 카드, 아래 설명과 단추 */
+.section { margin-top: 28px; min-width: 0; }
+.section-head { padding: 0 6px 8px; font-size: var(--text-sub); font-weight: 650; line-height: 1.3; color: var(--color-text-secondary); }
+.section-foot { padding: 8px 6px 0; font-size: var(--text-sub); color: var(--color-text-secondary); line-height: 1.45; text-wrap: pretty; }
+.section-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; }
+
+.group {
+  margin: 0; padding: 0; list-style: none; min-width: 0;
+  border: 1px solid transparent; border-radius: var(--radius-card);
+  background: var(--color-bg-surface); box-shadow: var(--shadow-border);
+  overflow: hidden;
+}
+.group-row {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  min-height: 44px; padding: 8px 14px;
+}
+.group-row + .group-row::before {
+  content: ""; position: absolute; inset-block-start: 0; inset-inline: 14px 0;
+  height: 1px; background: var(--color-separator); pointer-events: none;
+}
+@media (min-resolution: 2dppx) {
+  .group-row + .group-row::before { height: 0.5px; }
+}
+label.group-row { cursor: pointer; transition: background-color var(--dur-press) ease-out; }
+label.group-row:active { background-color: var(--color-bg-pressed); }
+@media (hover: hover) and (pointer: fine) {
+  label.group-row:hover { background-color: var(--color-bg-pressed); }
+}
+.group-row.stacked { flex-direction: column; align-items: stretch; gap: 8px; padding-block: 12px; }
+.group-row.empty { color: var(--color-text-secondary); font-size: var(--text-sub); line-height: 1.45; text-wrap: pretty; }
+.row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+label.row-text { cursor: default; }
+.row-title { font-weight: 500; line-height: 1.35; }
+.row-title.mono { overflow-wrap: anywhere; }
+.row-sub { font-size: var(--text-sub); color: var(--color-text-secondary); line-height: 1.4; text-wrap: pretty; }
+.row-state { font-weight: 600; color: var(--color-text-primary); }
+.row-state.danger { color: var(--color-danger-text); }
+
+/* 사실 줄 — 이름은 앞, 값은 뒤 */
+.facts .group-row { justify-content: space-between; gap: 16px; }
+.facts dt { flex: none; font-weight: 500; }
+.facts dd { min-width: 0; text-align: end; color: var(--color-text-secondary); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+
+/* 단추 — 모양은 알약 하나, 채움은 잉크·우물·투명 셋. 누르면 0.96 으로 줄고 꺼진 단추는 줄지 않는다 */
+.btn {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 32px; padding: 0 16px;
+  border: 1px solid transparent; border-radius: var(--radius-pill);
+  font-weight: 600; line-height: 1.2; text-align: center; white-space: nowrap;
+  transition-property: scale, background-color, color, opacity;
+  transition-duration: var(--dur-press);
+  transition-timing-function: ease-out;
+}
+.btn:not(:disabled):active { scale: 0.96; }
+.btn:disabled { opacity: 0.4; }
+.btn .icon { width: 14px; height: 14px; }
+.btn.small { min-height: 28px; padding: 0 12px; font-size: var(--text-sub); }
+/* 그림 쪽 여백은 2px 덜 준다(눈으로 맞춘 가운데) */
+.btn.small.has-trailing-icon { padding-inline-end: 10px; }
+.btn-primary { background: var(--color-ink-solid); color: var(--color-text-on-ink); }
+.btn-primary:not(:disabled):active { background: var(--color-ink-solid-pressed); }
+.btn-secondary { background: var(--color-bg-sunken); color: var(--color-text-primary); }
+.btn-secondary:not(:disabled):active { background: var(--color-bg-selected); }
+.btn-ghost { color: var(--color-text-primary); }
+.btn-ghost:not(:disabled):active { background: var(--color-bg-pressed); }
+/* 지우는 동작 — 위험 색은 글자에만 */
+.btn-ghost.danger { color: var(--color-danger-text); }
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:not(:disabled):hover { background: var(--color-ink-solid-pressed); }
+  .btn-secondary:not(:disabled):hover { background: var(--color-bg-selected); }
+  .btn-ghost:not(:disabled):hover { background: var(--color-bg-pressed); }
+}
+
+/* 고르기 — PWA 의 칩과 같은 알약. 메뉴는 macOS 기본 메뉴다 */
+.select { position: relative; display: inline-grid; flex: none; max-width: 60%; }
+.select select {
+  -webkit-appearance: none; appearance: none;
+  min-width: 0; max-width: 100%; min-height: 28px; padding: 0 30px 0 12px;
+  border: 1px solid transparent; border-radius: var(--radius-pill);
+  background: var(--color-bg-sunken); color: var(--color-text-primary);
+  font-size: var(--text-sub); font-weight: 600; text-overflow: ellipsis; cursor: pointer;
+  transition: background-color var(--dur-press) ease-out;
+}
+.select .icon {
+  position: absolute; inset-block-start: 50%; inset-inline-end: 9px; translate: 0 -50%;
+  width: 14px; height: 14px; color: var(--color-text-secondary); pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .select select:hover { background: var(--color-bg-selected); }
+}
+
+/* 입력칸 — 우물 면에 앉는다. 초점은 테 하나 */
+.field-input {
+  min-width: 0; min-height: 32px; padding: 4px 12px;
+  border: 1px solid transparent; border-radius: var(--radius-well);
+  background: var(--color-bg-sunken); color: var(--color-text-primary); line-height: 1.4;
+  transition: border-color var(--dur-press) ease-out;
+}
+.field-input:focus-visible, .field-input:focus { outline: none; border-color: var(--color-focus-ring); }
+.field-input::placeholder { color: var(--color-text-tertiary); opacity: 1; }
+.number { flex: none; display: inline-flex; align-items: center; gap: 8px; }
+.number .field-input { width: 80px; text-align: end; font-variant-numeric: tabular-nums; }
+.unit { min-width: 1.2em; font-size: var(--text-sub); color: var(--color-text-secondary); }
+
+/* 스위치 — PWA 와 같은 모양을 데스크톱 크기로. 켜면 초록, 손잡이는 흰 원 */
+.switch {
+  position: relative; flex: none; width: 38px; height: 22px; margin: 0;
+  border-radius: var(--radius-pill);
+  -webkit-appearance: none; appearance: none; cursor: pointer;
+  background: var(--color-border-strong);
+  transition: background-color var(--dur-press) ease-out;
+}
+.switch::before {
+  content: ""; position: absolute; inset-block-start: 2px; inset-inline-start: 2px; width: 18px; height: 18px; border-radius: 50%;
+  background: oklch(1 0 0); box-shadow: 0 1px 2px oklch(0 0 0 / 0.2);
+  transition: translate var(--dur-press) ease-out;
+}
+.switch:checked { background: var(--color-success-solid); }
+.switch:checked::before { translate: 16px 0; }
+
+/* 시작하기 — 단계 카드. 끝난 단계는 번호 대신 체크, 상태 글은 초록 */
+.steps { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 10px; }
+.step {
+  display: flex; align-items: flex-start; gap: 14px; padding: 16px;
+  border: 1px solid transparent; border-radius: var(--radius-card);
+  background: var(--color-bg-surface); box-shadow: var(--shadow-border);
+}
+.step-mark {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--color-bg-sunken); color: var(--color-text-secondary);
+  font-size: var(--text-sub); font-weight: 650; font-variant-numeric: tabular-nums;
+}
+.step-mark > * { grid-area: 1 / 1; }
+.step-mark .icon { width: 15px; height: 15px; visibility: hidden; }
+.step.done .step-mark { background: var(--color-success-subtle); color: var(--color-success-text); }
+.step.done .step-number { visibility: hidden; }
+.step.done .step-mark .icon { visibility: visible; }
+.step-body { flex: 1; min-width: 0; display: grid; gap: 4px; align-content: start; }
+.step-title { padding-top: 3px; font-size: var(--text-body); font-weight: 650; line-height: 1.35; }
+.step-state { font-size: var(--text-sub); font-weight: 600; color: var(--color-text-secondary); line-height: 1.4; overflow-wrap: anywhere; }
+.step.done .step-state { color: var(--color-success-text); }
+.step-hint { font-size: var(--text-sub); color: var(--color-text-secondary); line-height: 1.5; text-wrap: pretty; }
+.step-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.output {
+  max-height: 12rem; margin-top: 8px; padding: 10px 12px; overflow: auto; overscroll-behavior: contain;
+  border-radius: var(--radius-well); background: var(--color-bg-sunken);
+  font-family: var(--font-mono); font-size: var(--text-micro); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.qr-row { display: flex; align-items: flex-start; gap: 16px; margin-top: 6px; }
+/* QR 은 어두운 테마에서도 흰 판 위에 있어야 찍힌다 */
+.qr {
+  flex: none; width: 132px; height: 132px; padding: 6px;
+  border-radius: var(--radius-well); background: oklch(1 0 0);
+  outline: 1px solid var(--image-outline); outline-offset: -1px;
+}
+.view-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
+
+/* 테마가 바뀌는 순간 — 색 전환이 한꺼번에 돌지 않게 한 틀 동안 끈다(app.js) */
+.theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
+
+/* 움직임 줄이기 — 눌림의 크기 변화와 스위치 손잡이 미끄러짐은 멈추고 상태만 바꾼다. 색 전환은 남긴다 */
+@media (prefers-reduced-motion: reduce) {
+  .btn:active { scale: none !important; }
+  .switch::before { transition: none; }
+}

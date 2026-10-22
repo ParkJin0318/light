@@ -1,0 +1,37 @@
+/*
+ * 새 세션·설정 — 큰 제목 아래 묶음 카드. 새 세션의 도크는 대화 화면과 같은 입력 카드다
+ */
+.form-scroll {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch;
+  padding-top: var(--nav-h, 52px);
+  scroll-padding-top: var(--nav-h, 52px); scroll-padding-bottom: var(--dock-h, 0px);
+}
+.form-column {
+  width: 100%; max-width: calc(var(--column) + var(--pad-l) + var(--pad-r)); margin-inline: auto;
+  padding: 0 var(--pad-r) calc(var(--dock-h, 0px) + 32px) var(--pad-l);
+}
+.settings-screen .form-column { padding-bottom: calc(var(--safe-bottom) + 32px); }
+
+.section-search { margin-bottom: 10px; background: var(--color-bg-surface); box-shadow: var(--shadow-border); border: 1px solid transparent; }
+
+.project-list { border: 1px solid transparent; }
+.project-row { cursor: pointer; }
+.project-row:has(input:focus-visible) { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; border-radius: var(--radius-card); }
+.project-row.selected { background: var(--color-bg-selected); }
+.project-row.selected .row-tile { background: var(--color-ink-solid); color: var(--color-text-on-ink); }
+/* 경로는 앞쪽부터 줄인다 — 고른 줄은 다 보인다 */
+.project-path { direction: rtl; text-align: left; font-family: var(--font-mono); font-size: var(--text-micro); color: var(--color-text-secondary); }
+.project-row.selected .project-path { direction: ltr; white-space: normal; overflow-wrap: anywhere; color: var(--color-text-secondary); }
+
+.new-screen .dock-status { padding-inline-start: 8px; }
+
+.facts .group-row { justify-content: space-between; gap: 16px; min-height: 48px; }
+.facts dt { flex: none; color: var(--color-text-primary); font-weight: 500; }
+.facts dd { margin: 0; min-width: 0; text-align: end; color: var(--color-text-secondary); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.facts .mono { font-family: var(--font-mono); font-size: 0.875em; }
+.keys dt { display: flex; align-items: center; gap: 4px; }
+.keys dd { color: var(--color-text-primary); }
+.group-row.action .row-title { font-weight: 650; }
+.group-row.static { cursor: default; }
+.group-row[aria-disabled="true"] { cursor: progress; }
+.group-row .spinner { width: 16px; height: 16px; }

@@ -1,0 +1,178 @@
+/*
+ * 틀 — 앱 높이는 키보드가 올라온 실제 높이(--app-height)다. 화면(.screen)마다 머리·도크가 본문 위에 떠 있고
+ * 그 높이(--nav-h·--dock-h·--bar-h)만큼 본문이 비켜 선다. 넓은 화면은 사이드바 + 오른쪽 칸 2열
+ */
+.app {
+  height: var(--app-height, 100dvh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 연결 띠가 있으면 띠가 위쪽 safe area 를 맡는다 */
+.app:has(.conn-banner) :is(main, aside) { --safe-top: 0px; }
+
+/*
+ * 상태 막대 자리 — 화면 너비의 불투명 띠. iOS 26 이후 홈 화면 앱은 상태 막대 밑을 시스템 blur 로 덮어 머리 제목까지 번진다.
+ * WebKit 은 내용 맨 위 가운데(위에서 4px)에 걸린 fixed·sticky 요소가 화면 너비의 90% 를 넘고 단색일 때만 그 blur 를
+ * 그 색으로 바꾼다(LocalFrameView::fixedContainerEdges). 아이패드 가로 2열의 머리는 한 칸 너비라 이 띠가 맡는다.
+ * 아이패드 홈 화면 앱은 내용이 상태 막대 아래에서 시작해 safe area 가 0 이라 6px 는 둔다 — 머리 글자(위에서 15px 남짓)에 닿지 않는다.
+ * 10px 이하면 WebKit 이 배경색 대신 그 자리 화면을 표본으로 읽는데 띠가 단색이라 같은 색이 된다(iOS 27 아이패드 시뮬레이터 실측)
+ */
+.top-edge {
+  position: fixed; inset-block-start: 0; inset-inline: 0; z-index: 20;
+  height: max(env(safe-area-inset-top), 6px);
+  background: var(--color-bg-page);
+  pointer-events: none;
+}
+.app:has(.conn-banner) > .top-edge { background: var(--color-bg-sunken); }
+.app:has(.conn-banner.unreachable) > .top-edge { background: var(--color-danger-subtle); }
+
+.split { flex: 1; min-height: 0; display: flex; }
+.sidebar {
+  width: clamp(320px, 32vw, 400px); flex: none; min-height: 0; display: flex;
+  border-inline-end: 1px solid var(--color-separator);
+}
+.detail, .single { flex: 1; min-width: 0; min-height: 0; display: flex; }
+
+.screen {
+  position: relative; isolation: isolate;
+  flex: 1; min-width: 0; min-height: 0;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+/* 단 — 넓은 화면에서 가운데 선다. 안쪽 여백은 safe area 를 품은 물리 좌우다 */
+.column-box {
+  width: 100%; max-width: calc(var(--column) + var(--pad-l) + var(--pad-r)); margin-inline: auto;
+  padding-left: var(--pad-l); padding-right: var(--pad-r);
+}
+
+/* 머리 — 본문이 밑에 들어오면 바탕색 면과 아래 선을 켠다. 흐림은 쓰지 않는다 */
+.navbar {
+  position: absolute; inset-block-start: 0; inset-inline: 0; z-index: 10;
+  padding-top: var(--safe-top);
+  padding-left: max(6px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right));
+  border-bottom: 1px solid transparent;
+  background-color: transparent;
+  transition-property: background-color, border-color;
+  transition-duration: var(--dur-press);
+  transition-timing-function: ease-out;
+}
+.navbar[data-edge="true"] { background-color: var(--color-bg-page); border-bottom-color: var(--color-separator); }
+.navbar-row {
+  display: grid; align-items: center; column-gap: 2px;
+  grid-template-columns: minmax(calc(2.75 * var(--u)), 1fr) minmax(0, auto) minmax(calc(2.75 * var(--u)), 1fr);
+  min-height: calc(2.75 * var(--u) + 8px);
+}
+.navbar.align-start .navbar-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+.navbar-lead { display: flex; justify-content: flex-start; min-width: 0; }
+.navbar-trail { display: flex; justify-content: flex-end; min-width: 0; }
+.navbar-center { min-width: 0; text-align: center; transition: opacity var(--dur-press) ease-out; }
+.navbar.align-start .navbar-center { text-align: start; padding-inline: 4px; }
+.navbar.align-start .navbar-lead:empty { width: calc(var(--pad-l) - 10px); }
+.navbar[data-collapsed="false"] .navbar-center { opacity: 0; }
+.navbar-title {
+  font-size: var(--u); font-weight: 650; line-height: 1.25; letter-spacing: -0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.navbar-subtitle {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+  font-size: calc(0.8125 * var(--u)); color: var(--color-text-secondary); line-height: 1.3;
+}
+.navbar.align-center .navbar-subtitle { justify-content: center; }
+.navbar-subtitle > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navbar-back .icon { width: calc(1.6 * var(--u)); height: calc(1.6 * var(--u)); margin-inline-start: -2px; }
+
+/* 아래 떠 있는 막대(목록) — 검색과 새 세션. 막대 밑은 바탕색으로 서서히 가려 글이 겹쳐 보이지 않는다 */
+.floating-bar {
+  position: absolute; inset-inline: 0; inset-block-end: 0; z-index: 10;
+  padding: 18px var(--pad-r) calc(var(--safe-bottom) + 10px) var(--pad-l);
+  background: linear-gradient(to bottom, transparent, var(--color-bg-page) 22px);
+  pointer-events: none;
+}
+.floating-inner {
+  display: flex; align-items: center; gap: 10px; pointer-events: auto;
+  max-width: var(--column); margin-inline: auto;
+}
+.floating-bar .search {
+  flex: 1; min-height: calc(3 * var(--u));
+  background: var(--color-bg-raised); box-shadow: var(--shadow-float); border: 1px solid transparent;
+}
+.floating-bar .search input { min-height: calc(3 * var(--u)); }
+.floating-bar .search:focus-within { box-shadow: var(--shadow-float), 0 0 0 2px var(--color-focus-ring); }
+.fab {
+  flex: none; display: grid; place-items: center;
+  width: calc(3 * var(--u)); height: calc(3 * var(--u)); border-radius: 50%; border: 1px solid transparent;
+  background: var(--color-ink-solid); color: var(--color-text-on-ink); box-shadow: var(--shadow-float);
+  transition-property: scale, background-color;
+  transition-duration: var(--dur-press);
+  transition-timing-function: ease-out;
+}
+.fab .icon { width: calc(1.5 * var(--u)); height: calc(1.5 * var(--u)); stroke-width: 2.5px; }
+.fab:not(:disabled):active { scale: 0.96; background: var(--color-ink-solid-pressed); }
+@media (hover: hover) and (pointer: fine) {
+  .fab:not(:disabled):hover { background: var(--color-ink-solid-pressed); }
+}
+
+/* 도크(대화·새 세션) — 맨 위 20px 만 본문 위로 서서히 덮고 그 아래는 바탕이다 */
+.dock {
+  position: absolute; inset-inline: 0; inset-block-end: 0; z-index: 10;
+  padding-bottom: calc(var(--safe-bottom) + 8px);
+  background: linear-gradient(to bottom, transparent, var(--color-bg-page) 20px);
+}
+.dock-column {
+  display: flex; flex-direction: column; gap: 8px;
+  width: 100%; max-width: calc(var(--column) + var(--pad-l) + var(--pad-r)); margin-inline: auto;
+  padding: 20px var(--pad-r) 0 var(--pad-l);
+  container-type: inline-size;
+}
+[data-keyboard] :is(.dock, .floating-bar) { padding-bottom: 8px; }
+
+/* 연결 띠 — 앱 맨 위 흐름 속에 선다 */
+.conn-region { flex: none; }
+.conn-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(env(safe-area-inset-top) + 10px) var(--pad-r) 10px var(--pad-l);
+  font-size: calc(0.875 * var(--u)); font-weight: 600; line-height: 1.35;
+  background: var(--color-bg-sunken); color: var(--color-text-primary);
+}
+.conn-banner .icon { stroke-width: 2px; }
+.conn-banner.unreachable { background: var(--color-danger-subtle); color: var(--color-danger-text); }
+
+/* 알림 — 위에서 내려온다. 움직임 줄이기에서는 투명도만 */
+.toast-region {
+  position: fixed; inset-inline: 0; inset-block-start: calc(env(safe-area-inset-top) + 8px); z-index: 50;
+  display: flex; justify-content: center; padding-inline: 16px; pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 10px;
+  max-width: min(100%, 30rem); min-height: 44px; padding: 6px 6px 6px 16px;
+  border: 1px solid transparent; border-radius: 22px;
+  background: var(--color-ink-solid); color: var(--color-text-on-ink); box-shadow: var(--shadow-float);
+  font-size: calc(0.875 * var(--u)); font-weight: 600; line-height: 1.35;
+  opacity: 0;
+  transition: opacity var(--dur-exit) ease-out;
+}
+.toast:not(:has(.toast-close, .toast-action)) { padding-inline-end: 16px; }
+.toast[data-state="open"] { opacity: 1; transition-duration: var(--dur-enter); }
+@media (prefers-reduced-motion: no-preference) {
+  .toast { translate: 0 -12px; filter: blur(4px); transition-property: opacity, translate, filter; }
+  .toast[data-state="open"] { translate: 0 0; filter: blur(0); }
+}
+.toast.error {
+  background: var(--color-danger-subtle); color: var(--color-danger-text);
+  box-shadow: 0 0 0 1px var(--color-danger-border), var(--shadow-float);
+}
+.toast-icon { stroke-width: 2px; margin-inline-start: -4px; }
+.toast-text { flex: 1; min-width: 0; text-wrap: pretty; }
+.toast-action {
+  flex: none; min-height: 32px; padding: 0 12px; border-radius: var(--radius-pill);
+  background: oklch(1 0 0 / 0.16); color: inherit; font-weight: 700;
+  transition: scale var(--dur-press) ease-out;
+}
+@media (prefers-color-scheme: dark) {
+  .toast-action { background: oklch(0 0 0 / 0.1); }
+}
+.toast-action:not(:disabled):active { scale: 0.96; }
+.toast .toast-close { width: 32px; height: 32px; color: inherit; }
+.toast .toast-close:active { background: oklch(0.5 0 0 / 0.2); }

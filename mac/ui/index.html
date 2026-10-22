@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+    <title>light</title>
+    <!-- tokens.css 는 PWA 의 pwa/src/styles/tokens.css 를 빌드 때 복사한 것이다(mac/package.json) -->
+    <link rel="stylesheet" href="tokens.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <svg class="sprite" aria-hidden="true" focusable="false">
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+      <symbol id="i-chevrons" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5" /><path d="m7 9 5-5 5 5" /></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></symbol>
+    </svg>
+
+    <header class="toolbar">
+      <div class="segmented" role="tablist" aria-label="화면">
+        <button type="button" role="tab" id="tab-onboarding" aria-controls="view-onboarding" data-view="onboarding">시작하기</button>
+        <button type="button" role="tab" id="tab-settings" aria-controls="view-settings" data-view="settings">설정</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="column">
+        <div role="alert">
+          <p id="banner" class="banner" hidden><svg class="icon"><use href="#i-alert" /></svg><span id="banner-text"></span></p>
+        </div>
+
+        <main id="view-onboarding" class="view" role="tabpanel" aria-labelledby="tab-onboarding" hidden>
+          <div class="hero">
+            <h1 class="page-title">폰에서 Mac 의 Claude Code 를</h1>
+            <p class="hero-sub">여섯 단계면 끝납니다. 계정이나 서버는 없고 tailnet 하나로 이어집니다. 바깥에서 바꾼 것은 이 창으로 돌아오면 바로 확인합니다.</p>
+          </div>
+          <ol class="steps">
+            <li class="step" id="step-tailscale">
+              <span class="step-mark" aria-hidden="true"><span class="step-number">1</span><svg class="icon bold"><use href="#i-check" /></svg></span>
+              <div class="step-body">
+                <h2 class="step-title">Mac 에 Tailscale 설치·로그인</h2>
+                <p class="step-state"></p>
+                <div class="step-actions">
+                  <button type="button" class="btn btn-secondary small has-trailing-icon" data-action="install-tailscale">설치 페이지 열기<svg class="icon"><use href="#i-external" /></svg></button>
+                </div>
+              </div>
+            </li>
+            <li class="step" id="step-https">
+              <span class="step-mark" aria-hidden="true"><span class="step-number">2</span><svg class="icon bold"><use href="#i-check" /></svg></span>
+              <div class="step-body">
+                <h2 class="step-title">tailnet 의 HTTPS 켜기</h2>
+                <p class="step-state"></p>
+                <p class="step-hint">관리 콘솔의 DNS 화면에서 MagicDNS 와 HTTPS Certificates 를 켭니다.</p>
+                <div class="step-actions">
+                  <button type="button" class="btn btn-secondary small has-trailing-icon" data-action="open-dns">관리 콘솔 열기<svg class="icon"><use href="#i-external" /></svg></button>
+                </div>
+              </div>
+            </li>
+            <li class="step" id="step-serve">
+              <span class="step-mark" aria-hidden="true"><span class="step-number">3</span><svg class="icon bold"><use href="#i-check" /></svg></span>
+              <div class="step-body">
+                <h2 class="step-title">serve 등록</h2>
+                <p class="step-state"></p>
+                <p class="step-hint">이 Mac 의 tailnet 주소(HTTPS)를 light 데몬(127.0.0.1)으로 잇습니다. 공개 인터넷(Funnel)에는 열지 않습니다.</p>
+                <div class="step-actions">
+                  <button type="button" class="btn btn-secondary small" data-action="register-serve">serve 등록</button>
+                </div>
+                <pre class="output" hidden></pre>
+              </div>
+            </li>
+            <li class="step" id="step-phone">
+              <span class="step-mark" aria-hidden="true"><span class="step-number">4</span><svg class="icon bold"><use href="#i-check" /></svg></span>
+              <div class="step-body">
+                <h2 class="step-title">폰에 Tailscale 설치·로그인</h2>
+                <p class="step-state"></p>
+                <p class="step-hint">폰의 App Store 에서 Tailscale 을 받아 이 Mac 과 같은 계정으로 로그인하고 VPN 을 켭니다. 폰이 tailnet 에 붙어야 다음 단계의 주소가 열립니다.</p>
+              </div>
+            </li>
+            <li class="step" id="step-install">
+              <span class="step-mark" aria-hidden="true"><span class="step-number">5</span><svg class="icon bold"><use href="#i-check" /></svg></span>
+              <div class="step-body">
+                <h2 class="step-title">폰에 light 설치</h2>
+                <p class="step-state"></p>
+                <div class="qr-row">
+                  <img id="qr" class="qr" alt="PWA 주소 QR 코드" hidden />
+                  <div class="step-body">
+                    <p class="step-hint">폰 카메라로 QR 을 찍어 Safari 로 엽니다. 홈 화면에 추가하는 안내가 바로 뜹니다. 추가한 뒤에는 홈 화면의 light 아이콘으로 엽니다. iOS·iPadOS 16.4 이상이어야 알림을 받습니다.</p>
+                    <div class="step-actions">
+                      <button type="button" class="btn btn-secondary small" data-action="copy-url">주소 복사</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li class="step" id="step-push">
+              <span class="step-mark" aria-hidden="true"><span class="step-number">6</span><svg class="icon bold"><use href="#i-check" /></svg></span>
+              <div class="step-body">
+                <h2 class="step-title">알림 허용과 테스트</h2>
+                <p class="step-state"></p>
+                <p class="step-hint">홈 화면의 light 를 처음 열면 알림을 켜는 안내가 뜹니다. 켠 뒤 폰이나 여기서 테스트 알림을 보냅니다.</p>
+                <div class="step-actions">
+                  <button type="button" class="btn btn-secondary small" data-action="test-push">테스트 알림 보내기</button>
+                </div>
+              </div>
+            </li>
+          </ol>
+          <div class="view-actions"><button type="button" class="btn btn-primary" data-action="finish">마치기</button></div>
+        </main>
+
+        <main id="view-settings" class="view" role="tabpanel" aria-labelledby="tab-settings" hidden>
+          <div class="hero">
+            <h1 class="page-title">설정</h1>
+            <p class="hero-sub">바꾸면 이 Mac 의 데몬에 바로 저장됩니다.</p>
+          </div>
+
+          <section class="section" aria-labelledby="h-status">
+            <h2 id="h-status" class="section-head">상태</h2>
+            <dl class="group facts" id="facts"></dl>
+            <div class="section-actions">
+              <button type="button" class="btn btn-secondary small" data-action="refresh">다시 확인</button>
+              <button type="button" class="btn btn-secondary small" data-action="logs">로그 열기</button>
+              <button type="button" class="btn btn-secondary small" data-action="restart">데몬 다시 시작</button>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="h-devices">
+            <h2 id="h-devices" class="section-head">연결된 기기</h2>
+            <ul class="group" id="devices"></ul>
+            <div class="section-actions">
+              <button type="button" class="btn btn-secondary small" data-action="test-push">모든 기기에 테스트 알림</button>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="h-folders">
+            <h2 id="h-folders" class="section-head">프로젝트 폴더</h2>
+            <ul class="group" id="folders"></ul>
+            <p class="section-foot">새 세션 후보로 보입니다. Claude Code 기록에 나온 폴더도 후보입니다. 폰에서 임의 경로를 입력하지는 못합니다.</p>
+            <div class="section-actions">
+              <button type="button" class="btn btn-secondary small" data-action="add-folder">폴더 추가…</button>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="h-defaults">
+            <h2 id="h-defaults" class="section-head">세션 기본값</h2>
+            <div class="group">
+              <div class="group-row">
+                <label class="row-text" for="s-model"><span class="row-title">모델</span></label>
+                <span class="select">
+                  <select id="s-model" data-setting="defaultModel">
+                    <option value="">claude 설정을 따름</option><option value="opus">Opus</option><option value="sonnet">Sonnet</option><option value="haiku">Haiku</option>
+                  </select>
+                  <svg class="icon"><use href="#i-chevrons" /></svg>
+                </span>
+              </div>
+              <div class="group-row">
+                <label class="row-text" for="s-effort"><span class="row-title">노력도</span></label>
+                <span class="select">
+                  <select id="s-effort" data-setting="defaultEffort">
+                    <option value="">claude 설정을 따름</option><option value="low">낮음</option><option value="medium">보통</option><option value="high">높음</option><option value="xhigh">매우 높음</option><option value="max">최대</option>
+                  </select>
+                  <svg class="icon"><use href="#i-chevrons" /></svg>
+                </span>
+              </div>
+              <div class="group-row">
+                <label class="row-text" for="s-mode"><span class="row-title">권한 모드</span></label>
+                <span class="select">
+                  <select id="s-mode" data-setting="defaultPermissionMode">
+                    <option value="default">권한 요청</option><option value="acceptEdits">편집 자동 수락</option><option value="plan">계획 모드</option><option value="bypassPermissions">권한 건너뛰기</option>
+                  </select>
+                  <svg class="icon"><use href="#i-chevrons" /></svg>
+                </span>
+              </div>
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">새 세션 예열</span><span class="row-sub">claude 하나를 미리 띄워 두어 새 세션이 빨리 시작합니다</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="prewarm" />
+              </label>
+              <div class="group-row">
+                <label class="row-text" for="s-idle"><span class="row-title">유휴 세션을 닫는 시간</span></label>
+                <span class="number"><input type="number" id="s-idle" class="field-input" min="1" max="1440" aria-describedby="u-idle" data-setting="idleCloseMinutes" /><span class="unit" id="u-idle">분</span></span>
+              </div>
+              <div class="group-row">
+                <label class="row-text" for="s-limit"><span class="row-title">동시 세션 상한</span><span class="row-sub">비우면 메모리에 맞춥니다</span></label>
+                <span class="number"><input type="number" id="s-limit" class="field-input" min="1" max="64" aria-describedby="u-limit" data-setting="maxConcurrentSessions" /><span class="unit" id="u-limit">개</span></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="h-behavior">
+            <h2 id="h-behavior" class="section-head">세션 동작</h2>
+            <div class="group">
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">할 일 띠와 다음 단계 상자</span><span class="row-sub">턴 끝에 답 단추와 알림 요약을 보입니다</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="turnTools" />
+              </label>
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">끊긴 턴 이어 가기</span><span class="row-sub">데몬이 꺼지거나 Mac 이 잠든 사이 끊긴 턴을 이어 갑니다</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="autoContinue" />
+              </label>
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">터미널 입력 이력에 남기기</span><span class="row-sub">폰에서 보낸 글을 터미널의 입력 이력에도 남깁니다</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="writePromptHistory" />
+              </label>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="h-access">
+            <h2 id="h-access" class="section-head">접속</h2>
+            <div class="group">
+              <div class="group-row stacked">
+                <label class="row-text" for="s-logins"><span class="row-title">접속을 허용할 tailnet 로그인</span><span class="row-sub">쉼표로 구분합니다</span></label>
+                <input type="text" id="s-logins" class="field-input" data-setting="allowedLogins" placeholder="me@example.com" spellcheck="false" autocomplete="off" />
+              </div>
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">이 Mac 의 브라우저에서 바로 열기</span><span class="row-sub">127.0.0.1 로 여는 것을 허용합니다</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="allowLocalhost" />
+              </label>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="h-push">
+            <h2 id="h-push" class="section-head">알림</h2>
+            <div class="group">
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">권한 요청</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="notifications.permission" />
+              </label>
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">질문·계획 승인</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="notifications.question" />
+              </label>
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">턴 완료</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="notifications.turnDone" />
+              </label>
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">오류</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="notifications.error" />
+              </label>
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">잠금 화면에서 본문 감추기</span><span class="row-sub">프로젝트 이름과 종류만 보입니다</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="hideLockScreenBody" />
+              </label>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="h-mac">
+            <h2 id="h-mac" class="section-head">Mac</h2>
+            <div class="group">
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">로그인 시 실행</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="launchAtLogin" />
+              </label>
+              <label class="group-row">
+                <span class="row-text"><span class="row-title">세션이 도는 동안 잠자기 막기</span><span class="row-sub">덮개를 닫으면 막지 못합니다</span></span>
+                <input type="checkbox" class="switch" role="switch" data-setting="preventSleep" />
+              </label>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="h-claude">
+            <h2 id="h-claude" class="section-head">Claude Code</h2>
+            <div class="group">
+              <div class="group-row">
+                <label class="row-text" for="s-auth"><span class="row-title">인증</span></label>
+                <span class="select">
+                  <select id="s-auth" data-setting="authMode">
+                    <option value="subscription">claude 에 로그인한 계정(구독)</option>
+                    <option value="apiKey">로그인 셸의 ANTHROPIC_API_KEY</option>
+                  </select>
+                  <svg class="icon"><use href="#i-chevrons" /></svg>
+                </span>
+              </div>
+              <div class="group-row stacked">
+                <label class="row-text" for="s-claude"><span class="row-title">claude 실행 파일</span><span class="row-sub">비우면 로그인 셸 PATH 에서 찾습니다</span></label>
+                <input type="text" id="s-claude" class="field-input mono" data-setting="claudePath" placeholder="/Users/me/.local/bin/claude" spellcheck="false" autocomplete="off" />
+              </div>
+            </div>
+            <p class="section-foot">light 는 로그인 화면을 만들지 않고 토큰·키체인을 읽지 않습니다. 로그인은 터미널의 claude 에서 합니다.</p>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
