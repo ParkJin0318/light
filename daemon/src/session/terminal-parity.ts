@@ -4,7 +4,7 @@
  * light 는 아직 정하지 않은 서버를 세션 플래그 층의 `disabledMcpjsonServers` 로 끄고 띄운 뒤 대화에 알린다 —
  * 승인은 터미널의 승인 창(이 폴더의 `.claude/settings.local.json`)에서 한다. 정한 기록은 세 설정 파일에서 읽는다
  */
-import type { HookCallbackMatcher } from "@anthropic-ai/claude-agent-sdk";
+import type { HookCallbackMatcher, PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -51,10 +51,14 @@ function projectMcpServers(cwd: string): string[] {
   return Object.keys(asObject(readObject(join(cwd, ".mcp.json"))?.mcpServers) ?? {});
 }
 
-/** 어느 설정 파일에도 켜거나 끈 기록이 없고 「모두 사용」도 아닌 서버 — 터미널이 띄우기 전에 묻는 그 서버들 */
-export function pendingProjectMcpServers(cwd: string, home: string): string[] {
+/**
+ * 어느 설정 파일에도 켜거나 끈 기록이 없고 「모두 사용」도 아닌 서버 — 터미널이 띄우기 전에 묻는 그 서버들.
+ * 권한 우회 모드로 띄우고 사용자 설정에 `skipDangerousModePermissionPrompt` 가 있으면 터미널은 묻지 않고 승인한다(2.1.312 바이너리)
+ */
+export function pendingProjectMcpServers(cwd: string, home: string, permissionMode?: PermissionMode): string[] {
   const servers = projectMcpServers(cwd);
   if (servers.length === 0) return [];
+  if (permissionMode === "bypassPermissions" && readObject(join(home, ".claude", "settings.json"))?.skipDangerousModePermissionPrompt === true) return [];
   const decided = new Set<string>();
   for (const path of settingsFiles(home, cwd)) {
     const settings = readObject(path);

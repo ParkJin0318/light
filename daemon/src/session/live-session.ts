@@ -354,7 +354,7 @@ export class LiveSession {
       });
       // 터미널이 띄우기 전에 묻는 프로젝트 MCP 서버는 끄고 띄운다 — SDK 는 묻지 않고 승인한다
       const home = environment.HOME ?? process.env.HOME ?? "";
-      const unapproved = pendingProjectMcpServers(this.cwd, home);
+      const unapproved = pendingProjectMcpServers(this.cwd, home, this.modeChoice);
       // 터미널처럼 백그라운드 Bash 에 시한을 걸지 않는다 — 포그라운드는 훅이 터미널 값으로 맞춘다
       const bashTimeouts = terminalBashTimeouts(environment, home, this.cwd);
       const options: Options = {

@@ -418,6 +418,24 @@ describe("터미널과 맞추기", () => {
     expect(pendingProjectMcpServers(project, home)).toEqual([]);
   });
 
+  test("권한 우회 모드에 사용자 설정의 skipDangerousModePermissionPrompt 가 있으면 터미널처럼 묻지 않고 켠다", async () => {
+    const { mkdirSync, writeFileSync } = await import("node:fs");
+    const { pendingProjectMcpServers } = await import("../src/session/terminal-parity.ts");
+    const home = mkdtempSync(join(tmpdir(), "light-home-"));
+    const project = mkdtempSync(join(tmpdir(), "light-project-"));
+    writeFileSync(join(project, ".mcp.json"), JSON.stringify({ mcpServers: { kb: {} } }));
+    expect(pendingProjectMcpServers(project, home, "bypassPermissions")).toEqual(["kb"]);
+    mkdirSync(join(home, ".claude"));
+    writeFileSync(join(home, ".claude", "settings.json"), JSON.stringify({ skipDangerousModePermissionPrompt: true }));
+    expect(pendingProjectMcpServers(project, home, "bypassPermissions")).toEqual([]);
+    expect(pendingProjectMcpServers(project, home, "default")).toEqual(["kb"]);
+    // 터미널은 프로젝트·로컬 설정의 이 값을 보지 않는다
+    writeFileSync(join(home, ".claude", "settings.json"), "{}");
+    mkdirSync(join(project, ".claude"));
+    writeFileSync(join(project, ".claude", "settings.local.json"), JSON.stringify({ skipDangerousModePermissionPrompt: true }));
+    expect(pendingProjectMcpServers(project, home, "bypassPermissions")).toEqual(["kb"]);
+  });
+
   test("사고 표시는 설정의 showThinkingSummaries 를 따르고 뒤 층이 이긴다", async () => {
     const { mkdirSync, writeFileSync } = await import("node:fs");
     const { thinkingDisplay } = await import("../src/session/terminal-parity.ts");
