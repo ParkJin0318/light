@@ -17,7 +17,7 @@
     "electron-builder": "^26.15.3",
     "typescript": "^5.6.0"
   },
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "light — Mac 의 Claude Code 세션을 폰에서 다루는 메뉴바 앱",
   "build": {
     "productName": "light",
