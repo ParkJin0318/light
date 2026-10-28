@@ -389,6 +389,18 @@ describe("Tailscale", () => {
     expect(await tailscale.status()).toMatchObject({ installed: true, loggedIn: true });
     expect(calls).toEqual([join(bin, "tailscale")]);
   });
+
+  test("터미널 밖에서도 Tailscale.app 을 CLI 로 띄운다 — 로그인 항목으로 뜬 데몬에는 TERM 이 없다", async () => {
+    const { chmodSync, writeFileSync } = await import("node:fs");
+    const bin = mkdtempSync(join(tmpdir(), "light-tailscale-"));
+    // Tailscale.app 처럼 CLI 신호가 없으면 GUI 로 뜨려다 실패한다
+    writeFileSync(join(bin, "tailscale"), `#!/bin/sh
+[ "$TAILSCALE_BE_CLI" = 1 ] || { echo "The Tailscale GUI failed to start" >&2; exit 1; }
+echo '{"BackendState":"Running"}'
+`);
+    chmodSync(join(bin, "tailscale"), 0o755);
+    expect(await new Tailscale(undefined, () => bin, []).status()).toMatchObject({ installed: true, loggedIn: true });
+  });
 });
 
 describe("터미널과 맞추기", () => {

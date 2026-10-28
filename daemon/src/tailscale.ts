@@ -8,9 +8,13 @@ import { errorText } from "./log.ts";
 
 export type CommandRunner = (command: string, args: string[]) => Promise<{ code: number; stdout: string; stderr: string }>;
 
+/**
+ * Tailscale.app 의 실행 파일은 TERM·TERM_PROGRAM·TAILSCALE_BE_CLI 중 하나가 없으면 CLI 대신 GUI 로 뜨려다
+ * 「The Tailscale GUI failed to start … CLIError error 3」으로 끝난다. 로그인 항목으로 뜬 앱의 데몬에는 TERM 이 없다
+ */
 const runCommand: CommandRunner = async (command, args) => {
   try {
-    const child = Bun.spawn([command, ...args], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+    const child = Bun.spawn([command, ...args], { env: { ...process.env, TAILSCALE_BE_CLI: "1" }, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
     const timer = setTimeout(() => child.kill(), 15_000);
     try {
       const [stdout, stderr, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
