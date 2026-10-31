@@ -7,6 +7,8 @@
 #   MAC_CERTIFICATE_PASSWORD  그 .p12 의 암호
 #   MAC_CERTIFICATE_NAME      인증서 이름(CSC_NAME)
 #   APPLE_ID · APPLE_APP_SPECIFIC_PASSWORD · APPLE_TEAM_ID  공증
+#   MAC_SELF_SIGN_CERTIFICATE  Developer ID 가 없을 때 쓰는 자체 서명 코드 서명 인증서 .p12 의 base64 — 서명이 고정돼 업데이트 뒤에도 macOS 권한이 남는다.
+#   MAC_SELF_SIGN_PASSWORD     그 .p12 의 암호. 이 키를 잃거나 바꾸면 설치본이 업데이트를 거절한다(mac/src/update.ts 의 지정 요건)
 # 러너가 Apple Silicon 이라 arm64 빌드만 나온다(데몬 실행 파일이 러너 아키텍처를 따른다).
 name: Mac app
 
@@ -52,12 +54,29 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          MAC_SELF_SIGN_CERTIFICATE: ${{ secrets.MAC_SELF_SIGN_CERTIFICATE }}
+          MAC_SELF_SIGN_PASSWORD: ${{ secrets.MAC_SELF_SIGN_PASSWORD }}
           # 다른 브랜치 빌드는 이 기기에서 지은 빌드처럼 업데이트를 받지 않는다
           LIGHT_RELEASE_REPO: ${{ github.ref == 'refs/heads/release' && github.repository || '' }}
         # electron-builder 는 빈 CSC_LINK 도 인증서로 읽으려 들어서 시크릿이 있을 때만 넘긴다
         run: |
           if [ -n "$MAC_CERTIFICATE" ]; then
             export CSC_LINK="$MAC_CERTIFICATE" CSC_KEY_PASSWORD="$MAC_CERTIFICATE_PASSWORD" CSC_NAME="$MAC_CERTIFICATE_NAME"
+          elif [ -n "$MAC_SELF_SIGN_CERTIFICATE" ]; then
+            # 자체 서명 — 임시 키체인에 넣어 검색 목록에 올린다(codesign 이 신원을 찾는 곳). 신뢰는 주지 않아도 서명·검증된다
+            KC="$RUNNER_TEMP/light-sign.keychain-db"
+            KP="$(uuidgen)"
+            security create-keychain -p "$KP" "$KC"
+            security set-keychain-settings -lut 21600 "$KC"
+            security unlock-keychain -p "$KP" "$KC"
+            printf '%s' "$MAC_SELF_SIGN_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/light-sign.p12"
+            security import "$RUNNER_TEMP/light-sign.p12" -k "$KC" -P "$MAC_SELF_SIGN_PASSWORD" -T /usr/bin/codesign
+            rm -f "$RUNNER_TEMP/light-sign.p12"
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KP" "$KC" > /dev/null
+            security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+            export LIGHT_SIGN_KEYCHAIN="$KC"
+            LIGHT_SIGN_IDENTITY="$(security find-certificate -a -Z "$KC" | awk '/SHA-1/ { print $NF; exit }')"
+            export LIGHT_SIGN_IDENTITY
           fi
           sh scripts/build-mac.sh
 

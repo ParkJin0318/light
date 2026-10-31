@@ -29,7 +29,7 @@ Mac 에서 도는 Claude Code 세션을 아이폰·아이패드의 PWA 채팅으
 - 화면을 고쳤으면 `npm run build` 뒤 미리보기(`.claude/launch.json` 의 light, 데이터는 `.dev/`)로 확인한다
 - Mac 앱은 `npm run mac`. 시험 모드 `LIGHT_SMOKE=1`(+`LIGHT_SMOKE_SHOT`·`LIGHT_SMOKE_CRASH`·`LIGHT_SMOKE_HANG`)이 상태를 찍고 끝난다
 - CI(`.github/workflows/mac.yml`)는 `scripts/build-mac.sh` 를 그대로 돌려 dmg 를 올리고 release 브랜치면 `mac/package.json` 의 version 으로 릴리스(dmg·zip·업데이트 명세)를 낸다(있는 버전은 건너뛴다). 스크립트의 env 를 바꾸면 워크플로도 맞춘다
-- 인증서 없는 빌드도 ad-hoc 으로 서명한다(`mac/build/adhoc-sign.js`). 서명을 건너뛰면 번들 봉인이 없어 업데이트가 그 빌드를 받지 않는다
+- Developer ID 가 없으면 자체 서명 인증서(시크릿 `MAC_SELF_SIGN_*`)로, 그것도 없으면 ad-hoc 으로 서명한다(`mac/build/sign.js`). 서명을 건너뛰면 번들 봉인이 없어 업데이트가 그 빌드를 받지 않는다. 자체 서명 키를 잃거나 바꾸면 설치본이 업데이트를 거절한다
 - 실제 claude 로 확인할 때는 haiku 와 스크래치 폴더를 쓰고 `LIGHT_HOME` 을 따로 둔다
 
 어기면 안 되는 것

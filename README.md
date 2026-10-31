@@ -90,11 +90,12 @@ To run only the daemon, use `sh scripts/dev-daemon.sh`. It keeps its data in `.d
 | Variable | Purpose |
 |---|---|
 | `LIGHT_BUNDLE_ID` | Bundle ID (default `dev.light.mac`) |
-| `CSC_NAME` | Developer ID Application certificate. With `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` the build is signed and notarized; without them it is ad-hoc signed |
+| `CSC_NAME` | Developer ID Application certificate. With `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` the build is signed and notarized; without them it is self-signed (below) or ad-hoc signed |
+| `LIGHT_SIGN_IDENTITY` | SHA-1 of a self-signed code signing certificate (keychain in `LIGHT_SIGN_KEYCHAIN`). The signature stays the same across builds, so macOS permissions survive updates. Without it the build is ad-hoc signed and its signature changes every build |
 | `TARGET` | `dmg` (default) or `dir` |
 | `LIGHT_RELEASE_REPO` | `owner/name` whose releases the app updates from. Only builds made with it update themselves, and the script also writes the zip and `light-update.json` for the release |
 
-CI ([`.github/workflows/mac.yml`](.github/workflows/mac.yml)) runs the same script on a macOS runner for every push to the `release` branch (or when started by hand), and uploads the dmg to the workflow run. On the `release` branch it also publishes a GitHub release tagged with the version in `mac/package.json`, such as `v0.1.0`, with the dmg, a zip of the app and the update manifest `light-update.json` that installed copies read; a version that already has a release is skipped, so bump the version to ship a new one. The runner is Apple Silicon, so the build is arm64 only. To sign and notarize in CI, add the repository secrets `MAC_CERTIFICATE` (the .p12 in base64), `MAC_CERTIFICATE_PASSWORD`, `MAC_CERTIFICATE_NAME`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID`; without them the build is ad-hoc signed.
+CI ([`.github/workflows/mac.yml`](.github/workflows/mac.yml)) runs the same script on a macOS runner for every push to the `release` branch (or when started by hand), and uploads the dmg to the workflow run. On the `release` branch it also publishes a GitHub release tagged with the version in `mac/package.json`, such as `v0.1.0`, with the dmg, a zip of the app and the update manifest `light-update.json` that installed copies read; a version that already has a release is skipped, so bump the version to ship a new one. The runner is Apple Silicon, so the build is arm64 only. To sign and notarize in CI, add the repository secrets `MAC_CERTIFICATE` (the .p12 in base64), `MAC_CERTIFICATE_PASSWORD`, `MAC_CERTIFICATE_NAME`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID`. Without a Developer ID, `MAC_SELF_SIGN_CERTIFICATE` (a self-signed .p12 in base64) and `MAC_SELF_SIGN_PASSWORD` sign the build without notarizing it; without those it is ad-hoc signed. Installed copies refuse updates signed with a different self-signed key, so keep the key somewhere safe.
 
 ## How it works
 
@@ -185,7 +186,7 @@ light starts the `claude` binary you installed, unmodified, through the Agent SD
 - Renaming the Mac changes its `ts.net` address, so the phone has to install light again. The Mac app tells you when this happens.
 - There is no terminal (PTY) view, code viewer, diff viewer, parallel worktrees, or support for agents other than Claude Code.
 - The interface is in Korean only.
-- Without a Developer ID certificate every release is ad-hoc signed, so its code signature changes with each update and macOS may ask again for permissions such as folder access. On a Mac nobody sits in front of (a Mac mini used as a server, for example) nobody answers that prompt, so sessions in folders such as Documents cannot start. The daemon keeps running and tells the phone why. Turn light on under System Settings › Privacy & Security › Full Disk Access.
+- Releases are signed with a self-signed certificate rather than a Developer ID. The signature stays the same across updates, so macOS permissions you grant once are kept (coming from an ad-hoc build, 0.2.3 or earlier, you grant them once more). On a Mac nobody sits in front of (a Mac mini used as a server, for example) nobody answers that prompt, so sessions in folders such as Documents cannot start. The daemon keeps running and tells the phone why. Turn light on under System Settings › Privacy & Security › Full Disk Access.
 
 ## Development
 

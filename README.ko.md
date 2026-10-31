@@ -90,11 +90,12 @@ npm run mac     # 메뉴바 앱 — 데몬을 띄우고 시작하기를 엽니�
 | 변수 | 쓰임 |
 |---|---|
 | `LIGHT_BUNDLE_ID` | 번들 ID(기본 `dev.light.mac`) |
-| `CSC_NAME` | Developer ID Application 인증서. `APPLE_ID`·`APPLE_APP_SPECIFIC_PASSWORD`·`APPLE_TEAM_ID` 까지 있으면 서명·공증하고 없으면 ad-hoc 서명 빌드를 만듭니다 |
+| `CSC_NAME` | Developer ID Application 인증서. `APPLE_ID`·`APPLE_APP_SPECIFIC_PASSWORD`·`APPLE_TEAM_ID` 까지 있으면 서명·공증하고 없으면 아래 자체 서명이나 ad-hoc 서명 빌드를 만듭니다 |
+| `LIGHT_SIGN_IDENTITY` | 자체 서명 코드 서명 인증서의 SHA-1(키체인은 `LIGHT_SIGN_KEYCHAIN`). 서명이 빌드마다 같아 업데이트 뒤에도 macOS 권한이 남습니다. 없으면 ad-hoc 이라 빌드마다 서명이 바뀝니다 |
 | `TARGET` | `dmg`(기본) 또는 `dir` |
 | `LIGHT_RELEASE_REPO` | 앱이 업데이트를 받을 릴리스의 `owner/name`. 이것을 주고 지은 빌드만 스스로 업데이트하고, 스크립트가 릴리스에 올릴 zip 과 `light-update.json` 도 남깁니다 |
 
-CI([`.github/workflows/mac.yml`](.github/workflows/mac.yml))가 `release` 브랜치에 푸시할 때마다(손으로 돌릴 수도 있습니다) macOS 러너에서 같은 스크립트를 돌려 dmg 를 실행 결과에 올립니다. `release` 브랜치면 `mac/package.json` 의 버전을 태그로(`v0.1.0` 처럼) GitHub 릴리스도 냅니다. 릴리스에는 dmg 와 함께 설치본이 읽는 앱 zip 과 업데이트 명세 `light-update.json` 을 올립니다. 이미 릴리스가 있는 버전은 건너뛰니 새 릴리스는 버전을 올려서 냅니다. 러너가 Apple Silicon 이라 arm64 빌드만 나옵니다. CI 에서 서명·공증하려면 저장소 시크릿 `MAC_CERTIFICATE`(.p12 의 base64)·`MAC_CERTIFICATE_PASSWORD`·`MAC_CERTIFICATE_NAME`·`APPLE_ID`·`APPLE_APP_SPECIFIC_PASSWORD`·`APPLE_TEAM_ID` 를 둡니다. 없으면 ad-hoc 서명 빌드입니다.
+CI([`.github/workflows/mac.yml`](.github/workflows/mac.yml))가 `release` 브랜치에 푸시할 때마다(손으로 돌릴 수도 있습니다) macOS 러너에서 같은 스크립트를 돌려 dmg 를 실행 결과에 올립니다. `release` 브랜치면 `mac/package.json` 의 버전을 태그로(`v0.1.0` 처럼) GitHub 릴리스도 냅니다. 릴리스에는 dmg 와 함께 설치본이 읽는 앱 zip 과 업데이트 명세 `light-update.json` 을 올립니다. 이미 릴리스가 있는 버전은 건너뛰니 새 릴리스는 버전을 올려서 냅니다. 러너가 Apple Silicon 이라 arm64 빌드만 나옵니다. CI 에서 서명·공증하려면 저장소 시크릿 `MAC_CERTIFICATE`(.p12 의 base64)·`MAC_CERTIFICATE_PASSWORD`·`MAC_CERTIFICATE_NAME`·`APPLE_ID`·`APPLE_APP_SPECIFIC_PASSWORD`·`APPLE_TEAM_ID` 를 둡니다. Developer ID 가 없으면 `MAC_SELF_SIGN_CERTIFICATE`(자체 서명 .p12 의 base64)·`MAC_SELF_SIGN_PASSWORD` 로 서명만 하고, 그것도 없으면 ad-hoc 서명 빌드입니다. 자체 서명 키를 잃거나 바꾸면 설치본이 업데이트를 거절하니 키를 따로 보관합니다.
 
 ## 작동 방식
 
@@ -185,7 +186,7 @@ light 는 여러분이 설치한 `claude` 바이너리를 Agent SDK 로 수정 �
 - Mac 이름이 바뀌면 `ts.net` 주소가 바뀌어 폰에서 다시 설치해야 합니다. Mac 앱이 알립니다.
 - 터미널(PTY) 화면, 코드 뷰어, diff 뷰어, 병렬 worktree, Claude Code 외 에이전트는 다루지 않습니다.
 - 화면은 한국어뿐입니다.
-- Developer ID 인증서 없이 낸 릴리스는 ad-hoc 서명이라 업데이트마다 코드 서명이 바뀌어 macOS 가 폴더 접근 같은 권한을 다시 물을 수 있습니다. 화면 앞에 사람이 없는 Mac(서버로 쓰는 Mac mini 등)에서는 그 허용 창에 답할 사람이 없어 문서 폴더 같은 곳의 세션이 뜨지 못합니다. 데몬은 멈추지 않고 폰에 까닭을 알립니다. 시스템 설정 › 개인정보 보호 및 보안 › 전체 디스크 접근에서 light 를 켜 두십시오.
+- 릴리스는 Developer ID 가 아닌 자체 서명 인증서로 서명합니다. 서명이 업데이트마다 같아 한 번 켠 macOS 권한이 남습니다(0.2.3 이하의 ad-hoc 판에서 처음 넘어올 때는 한 번 다시 켜야 합니다). 화면 앞에 사람이 없는 Mac(서버로 쓰는 Mac mini 등)에서는 그 허용 창에 답할 사람이 없어 문서 폴더 같은 곳의 세션이 뜨지 못합니다. 데몬은 멈추지 않고 폰에 까닭을 알립니다. 시스템 설정 › 개인정보 보호 및 보안 › 전체 디스크 접근에서 light 를 켜 두십시오.
 
 ## 개발
 

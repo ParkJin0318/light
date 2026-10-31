@@ -2,6 +2,7 @@
 # Mac 앱 빌드 — PWA 를 짓고, 데몬을 bun 실행 파일 하나로 묶고, Electron 앱으로 싼다.
 #   번들 ID:   LIGHT_BUNDLE_ID(기본 dev.light.mac) — 코드에 박지 않는다
 #   서명·공증: CSC_NAME(Developer ID Application 인증서 이름)과 APPLE_ID·APPLE_APP_SPECIFIC_PASSWORD·APPLE_TEAM_ID 가 있을 때만
+#   자체 서명: 그 둘이 없고 LIGHT_SIGN_IDENTITY(인증서 SHA-1)가 있으면 그 신원으로 서명만 한다(키체인은 LIGHT_SIGN_KEYCHAIN). 없으면 ad-hoc
 #   대상:      TARGET(기본 dmg, 확인용은 dir)
 #   업데이트:  LIGHT_RELEASE_REPO(owner/name) — 주면 번들에 그 레포의 릴리스 주소를 싣고 mac/release/ 에 zip 과 업데이트 명세(light-update.json)를 남긴다.
 #              이것이 실린 번들만 새 버전을 받는다(mac/src/update.ts). CI 는 release 브랜치에서만 준다
@@ -30,11 +31,15 @@ set -- --mac "${TARGET:-dmg}" "-c.appId=${LIGHT_BUNDLE_ID:-dev.light.mac}"
 if [ -n "${CSC_NAME:-}" ] && [ -n "${APPLE_ID:-}" ]; then
   set -- "$@" -c.mac.notarize=true
 else
-  # 서명을 건너뛰면(null) 링커 서명만 남아 번들 봉인이 없다 — 업데이트가 받은 번들의 봉인을 대조하므로 ad-hoc 으로라도 서명한다.
-  # "-" 만 주면 키체인의 다른 신원으로 서명할 수 있어 훅이 ad-hoc 으로 고정한다(mac/build/adhoc-sign.js)
-  echo "서명 인증서·공증 자격 증명이 없어 ad-hoc 서명 빌드를 만듭니다."
+  # 서명을 건너뛰면(null) 링커 서명만 남아 번들 봉인이 없다 — 업데이트가 받은 번들의 봉인을 대조하므로 적어도 ad-hoc 으로 서명한다.
+  # "-" 만 주면 키체인의 다른 신원으로 서명할 수 있어 훅이 신원을 고정한다(mac/build/sign.js)
+  if [ -n "${LIGHT_SIGN_IDENTITY:-}" ]; then
+    echo "자체 서명 인증서($LIGHT_SIGN_IDENTITY)로 서명합니다. 공증은 하지 않습니다."
+  else
+    echo "서명 인증서·공증 자격 증명이 없어 ad-hoc 서명 빌드를 만듭니다."
+  fi
   export CSC_IDENTITY_AUTO_DISCOVERY=false
-  set -- "$@" -c.mac.identity=- -c.mac.sign=./build/adhoc-sign.js
+  set -- "$@" -c.mac.identity=- -c.mac.sign=./build/sign.js
 fi
 npx electron-builder "$@"
 
