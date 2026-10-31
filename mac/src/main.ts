@@ -20,6 +20,12 @@ const dataDirectory = process.env.LIGHT_HOME ?? join(homedir(), "Library", "Appl
 app.setName("light");
 app.setPath("userData", process.env.LIGHT_APP_DATA ?? join(app.getPath("appData"), "light-mac"));
 const appStatePath = join(app.getPath("userData"), "app-state.json");
+/** 로컬 API 한 번의 시한 */
+const LOCAL_TIMEOUT_MS = 5_000;
+/** 떠 있는 데몬이 이만큼, 이만큼의 조회 동안 내리 답하지 않으면 멈춘 것으로 보고 다시 띄운다 — 둘 다 넘어야 잠에서 깬 직후 한 번의 실패로 띄우지 않는다 */
+const UNRESPONSIVE_RESTART_MS = 30_000;
+const UNRESPONSIVE_MISSES = 5;
+const UNRESPONSIVE_GRACE_MS = 3_000;
 
 interface AppState {
   onboarded?: boolean;
@@ -44,6 +50,8 @@ let daemon: ChildProcess | undefined;
 let quitting = false;
 let restartTimer: NodeJS.Timeout | undefined;
 let crashes: number[] = [];
+/** 떠 있는데 답하지 않는 데몬 — 처음 놓친 때·내리 놓친 횟수·다시 띄우는 중 */
+const unresponsive: { since: number | undefined; misses: number; restarting: boolean } = { since: undefined, misses: 0, restarting: false };
 let status: DaemonStatus | undefined;
 let statusError: string | undefined;
 let sleepBlocker: number | undefined;
@@ -84,6 +92,8 @@ async function local<T>(method: string, path: string, body?: unknown): Promise<T
     method,
     headers: { "X-Light-Token": localToken(), ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    // 멈춘 데몬은 연결을 받아 두고 답하지 않는다 — 시한이 없으면 감시까지 함께 멈춘다
+    signal: AbortSignal.timeout(LOCAL_TIMEOUT_MS),
   });
   const parsed = await response.json() as T & { error?: string };
   if (!response.ok) throw new Error(parsed.error ?? `데몬이 ${response.status} 로 답했습니다.`);
@@ -136,7 +146,7 @@ function startDaemon(): void {
   });
 }
 
-async function restartDaemon(): Promise<void> {
+async function restartDaemon(graceMs = 15_000): Promise<void> {
   const child = daemon;
   if (child === undefined) {
     startDaemon();
@@ -148,7 +158,26 @@ async function restartDaemon(): Promise<void> {
     child.kill("SIGTERM");
     setTimeout(() => {
       if (child.exitCode === null) child.kill("SIGKILL");
-    }, 15_000);
+    }, graceMs);
+  });
+}
+
+/**
+ * 끝나지 않고 멈춘 데몬 — 끝날 때만 다시 띄우는 감시(`startDaemon`)가 놓친다. 동기 open() 이 macOS 허용 창에 붙잡히면
+ * 프로세스는 살아서 연결만 쌓고 영영 답하지 않았다(2026-10-31 맥미니). 그런 데몬은 SIGTERM 도 처리하지 못해 유예를 짧게 둔다
+ */
+function watchUnresponsive(): void {
+  if (daemon === undefined || daemon.exitCode !== null || daemon.signalCode !== null || unresponsive.restarting) return;
+  const now = Date.now();
+  unresponsive.since ??= now;
+  unresponsive.misses += 1;
+  if (now - unresponsive.since < UNRESPONSIVE_RESTART_MS || unresponsive.misses < UNRESPONSIVE_MISSES) return;
+  unresponsive.restarting = true;
+  statusError = `데몬이 ${UNRESPONSIVE_RESTART_MS / 1000}초 넘게 답하지 않아 다시 띄웁니다. 되풀이되면 메뉴 막대의 「로그 열기」로 까닭을 보십시오.`;
+  void restartDaemon(UNRESPONSIVE_GRACE_MS).finally(() => {
+    unresponsive.restarting = false;
+    unresponsive.since = undefined;
+    unresponsive.misses = 0;
   });
 }
 
@@ -156,12 +185,15 @@ async function pollStatus(): Promise<void> {
   try {
     status = await local<DaemonStatus>("GET", "status");
     statusError = status.daemon.state === "blocked" ? status.daemon.reason : undefined;
+    unresponsive.since = undefined;
+    unresponsive.misses = 0;
     applyPowerAndLogin();
     watchAddress();
   } catch (error) {
     status = undefined;
     // 띠가 할 일까지 말한다 — 메뉴 막대의 두 항목은 어느 화면에서나 닿는다
     statusError ??= `데몬에 닿지 않습니다(${error instanceof Error ? error.message : String(error)}). 메뉴 막대의 light 에서 「데몬 다시 시작」을 누르고, 그래도 안 되면 「로그 열기」로 까닭을 보십시오.`;
+    watchUnresponsive();
   }
   refreshMenu();
   window?.webContents.send("status", { status: status ?? null, error: statusError ?? null });
@@ -375,6 +407,25 @@ if (!app.requestSingleInstanceLock()) {
             app.quit();
           }
         }, 250);
+      }, 4_000);
+    }
+    if (process.env.LIGHT_SMOKE_HANG === "1") {
+      // 시험용 — 데몬을 SIGSTOP 으로 얼려(살아 있지만 답하지 않는다) 감시가 다시 띄우는지 본다
+      setTimeout(() => {
+        const before = daemon?.pid;
+        const frozenAt = Date.now();
+        daemon?.kill("SIGSTOP");
+        const check = setInterval(() => {
+          if (status !== undefined && status.daemon.pid !== before) {
+            clearInterval(check);
+            process.stdout.write(`${JSON.stringify({ before, after: status.daemon.pid, recoveredMs: Date.now() - frozenAt })}\n`);
+            app.quit();
+          } else if (Date.now() - frozenAt > UNRESPONSIVE_RESTART_MS + 30_000) {
+            clearInterval(check);
+            process.stdout.write(`${JSON.stringify({ before, recovered: false, error: statusError ?? null })}\n`);
+            app.quit();
+          }
+        }, 500);
       }, 4_000);
     }
     if (process.env.LIGHT_SMOKE === "1") {

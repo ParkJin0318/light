@@ -185,7 +185,7 @@ light starts the `claude` binary you installed, unmodified, through the Agent SD
 - Renaming the Mac changes its `ts.net` address, so the phone has to install light again. The Mac app tells you when this happens.
 - There is no terminal (PTY) view, code viewer, diff viewer, parallel worktrees, or support for agents other than Claude Code.
 - The interface is in Korean only.
-- Without a Developer ID certificate every release is ad-hoc signed, so its code signature changes with each update and macOS may ask again for permissions such as folder access.
+- Without a Developer ID certificate every release is ad-hoc signed, so its code signature changes with each update and macOS may ask again for permissions such as folder access. On a Mac nobody sits in front of (a Mac mini used as a server, for example) nobody answers that prompt, so sessions in folders such as Documents cannot start. The daemon keeps running and tells the phone why. Turn light on under System Settings › Privacy & Security › Full Disk Access.
 
 ## Development
 
@@ -197,7 +197,7 @@ npm run mac         # the Mac app against the dev checkout
 ```
 
 - After changing a screen, build the PWA and check it against the dev daemon (`.claude/launch.json`, data in `.dev/`).
-- `LIGHT_SMOKE=1 npm run mac` starts the Mac app, prints the daemon status and quits. `LIGHT_SMOKE_SHOT=<path>` also saves a screenshot of the window, and `LIGHT_SMOKE_CRASH=1` kills the daemon to check that it comes back.
+- `LIGHT_SMOKE=1 npm run mac` starts the Mac app, prints the daemon status and quits. `LIGHT_SMOKE_SHOT=<path>` also saves a screenshot of the window, `LIGHT_SMOKE_CRASH=1` kills the daemon to check that it comes back, and `LIGHT_SMOKE_HANG=1` freezes the daemon to check that the watchdog restarts it.
 - `LIGHT_HOME` moves the data folder and `LIGHT_CLAUDE_HOME` points at a different `~/.claude`. When testing against a real `claude`, use Haiku, a scratch folder and a separate `LIGHT_HOME`.
 - The Agent SDK version is pinned in `daemon/package.json`. After bumping it, rerun the fixture tests in `shared/test/fixtures` and check a real session.
 - `sh scripts/screenshots.sh` regenerates the images in `docs/images/`. It starts a demo daemon on port 47699 whose sessions follow a script instead of running `claude`, then captures the PWA and the Mac app window with Playwright. Run `npx playwright install chromium` once first.

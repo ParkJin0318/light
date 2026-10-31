@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { realpathSync } from "node:fs";
 import { ClaudeHistory } from "../src/claude/history.ts";
+import { FolderAccess } from "../src/folder-access.ts";
 import { ShellEnvironment } from "../src/claude/shell-environment.ts";
 import { configureLog } from "../src/log.ts";
 import { Notifier } from "../src/push/notifier.ts";
@@ -169,14 +170,14 @@ function fakePrewarm(log: FakeLog, outcome: "accept" | "refuse", prewarmed: Opti
   };
 }
 
-async function setup(overrides: { maxConcurrentSessions?: number; defaultEffort?: string; prewarm?: "accept" | "refuse"; autoContinue?: boolean } = {}) {
+async function setup(overrides: { maxConcurrentSessions?: number; defaultEffort?: string; prewarm?: "accept" | "refuse"; autoContinue?: boolean; folderAccess?: FolderAccess } = {}) {
   configureLog(mkdtempSync(join(tmpdir(), "light-logs-")), { quiet: true });
   const data = mkdtempSync(join(tmpdir(), "light-data-"));
   const claudeHome = mkdtempSync(join(tmpdir(), "light-claude-"));
   const project = mkdtempSync(join(tmpdir(), "light-project-"));
   mkdirSync(join(claudeHome, "projects"));
   const settings = new SettingsStore(join(data, "settings.json"));
-  const { prewarm, ...settingOverrides } = overrides;
+  const { prewarm, folderAccess, ...settingOverrides } = overrides;
   settings.update({ projectFolders: [project], claudePath: "/bin/echo", prewarm: prewarm !== undefined, ...settingOverrides });
   const devices = new DeviceStore(join(data, "devices.json"));
   const log = newLog();
@@ -188,6 +189,7 @@ async function setup(overrides: { maxConcurrentSessions?: number; defaultEffort?
     notifier: new Notifier({ devices, settings: () => settings.current, vapid: await generateVapidKeys(), pushLog: join(data, "push.jsonl") }),
     shell: new ShellEnvironment(data, async () => undefined), query: fakeQuery(log), claudeHome, registry: () => [],
     ...(prewarm !== undefined ? { prewarm: fakePrewarm(log, prewarm, prewarmed) as never, prewarmDelayMs: 0 } : {}),
+    ...(folderAccess !== undefined ? { folderAccess } : {}),
   });
   return { manager, project, log, prewarmed, state, claudeHome, data, settings, uploads };
 }
@@ -214,6 +216,26 @@ describe("세션 관리(가짜 query)", () => {
   test("등록되지 않은 폴더는 열지 않는다", async () => {
     const { manager } = await setup();
     await expect(manager.create({ cwd: "/etc", prompt: "x", attachments: [] })).rejects.toThrow("등록된 프로젝트 폴더가 아닙니다");
+    await manager.shutdown();
+  });
+
+  test("허용 창에 붙잡힌 폴더는 새 세션을 띄우지 않고 까닭을 돌려준다", async () => {
+    const folderAccess = new FolderAccess({ timeoutMs: 20, probe: () => new Promise(() => {}) });
+    const { manager, project, log } = await setup({ folderAccess });
+    await expect(manager.create({ cwd: project, prompt: "안녕", attachments: [] })).rejects.toThrow("붙잡고 있습니다");
+    expect(log.started).toHaveLength(0);
+    expect(manager.sessions.size).toBe(0);
+    await manager.shutdown();
+  });
+
+  test("다시 띄울 때 폴더가 붙잡히면 그 세션만 실패하고 까닭을 대화에 남긴다", async () => {
+    // 만들 때의 확인은 지나가고 띄울 때의 확인이 붙잡힌다
+    let probes = 0;
+    const folderAccess = new FolderAccess({ timeoutMs: 20, probe: () => (++probes === 1 ? Promise.resolve() : new Promise(() => {})) });
+    const { manager, project, log } = await setup({ folderAccess });
+    const session = await manager.create({ cwd: project, prompt: "안녕", attachments: [] });
+    expect(log.started).toHaveLength(0);
+    expect(JSON.stringify(session.model.items)).toContain("붙잡고 있습니다");
     await manager.shutdown();
   });
 

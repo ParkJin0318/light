@@ -185,7 +185,7 @@ light 는 여러분이 설치한 `claude` 바이너리를 Agent SDK 로 수정 �
 - Mac 이름이 바뀌면 `ts.net` 주소가 바뀌어 폰에서 다시 설치해야 합니다. Mac 앱이 알립니다.
 - 터미널(PTY) 화면, 코드 뷰어, diff 뷰어, 병렬 worktree, Claude Code 외 에이전트는 다루지 않습니다.
 - 화면은 한국어뿐입니다.
-- Developer ID 인증서 없이 낸 릴리스는 ad-hoc 서명이라 업데이트마다 코드 서명이 바뀌어 macOS 가 폴더 접근 같은 권한을 다시 물을 수 있습니다.
+- Developer ID 인증서 없이 낸 릴리스는 ad-hoc 서명이라 업데이트마다 코드 서명이 바뀌어 macOS 가 폴더 접근 같은 권한을 다시 물을 수 있습니다. 화면 앞에 사람이 없는 Mac(서버로 쓰는 Mac mini 등)에서는 그 허용 창에 답할 사람이 없어 문서 폴더 같은 곳의 세션이 뜨지 못합니다. 데몬은 멈추지 않고 폰에 까닭을 알립니다. 시스템 설정 › 개인정보 보호 및 보안 › 전체 디스크 접근에서 light 를 켜 두십시오.
 
 ## 개발
 
@@ -197,7 +197,7 @@ npm run mac         # 개발 체크아웃으로 Mac 앱 실행
 ```
 
 - 화면을 고쳤으면 PWA 를 빌드하고 개발 데몬(`.claude/launch.json`, 데이터는 `.dev/`)으로 확인합니다.
-- `LIGHT_SMOKE=1 npm run mac` 은 Mac 앱을 띄워 데몬 상태를 찍고 끝납니다. `LIGHT_SMOKE_SHOT=<경로>` 는 창 스크린샷도 남기고 `LIGHT_SMOKE_CRASH=1` 은 데몬을 죽여 다시 뜨는지 봅니다.
+- `LIGHT_SMOKE=1 npm run mac` 은 Mac 앱을 띄워 데몬 상태를 찍고 끝납니다. `LIGHT_SMOKE_SHOT=<경로>` 는 창 스크린샷도 남기고 `LIGHT_SMOKE_CRASH=1` 은 데몬을 죽여 다시 뜨는지, `LIGHT_SMOKE_HANG=1` 은 데몬을 얼려 감시가 다시 띄우는지 봅니다.
 - `LIGHT_HOME` 은 데이터 폴더를, `LIGHT_CLAUDE_HOME` 은 `~/.claude` 자리를 바꿉니다. 실제 `claude` 로 확인할 때는 Haiku 와 스크래치 폴더를 쓰고 `LIGHT_HOME` 을 따로 둡니다.
 - Agent SDK 판은 `daemon/package.json` 에 고정합니다. 올리면 `shared/test/fixtures` 픽스처 시험과 실제 세션 확인을 다시 합니다.
 - `sh scripts/screenshots.sh` 가 `docs/images/` 의 그림을 다시 만듭니다. `claude` 대신 각본대로 움직이는 데모 데몬을 47699 포트에 띄우고 Playwright 로 PWA 와 Mac 앱 창을 찍습니다. 처음 한 번은 `npx playwright install chromium` 을 먼저 돌립니다.

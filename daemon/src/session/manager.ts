@@ -20,6 +20,7 @@ import { projectName, type ClaudeHistory, type HistoryEntry } from "../claude/hi
 import { ClaudeSessionRegistry, type ClaudeSessionRecord } from "../claude/registry.ts";
 import { resolveExecutable, type ShellEnvironment } from "../claude/shell-environment.ts";
 import { signalUntilExit } from "../claude/termination.ts";
+import { FolderAccess } from "../folder-access.ts";
 import { errorText, log } from "../log.ts";
 import type { Notifier } from "../push/notifier.ts";
 import type { SettingsStore, StateStore } from "../stores.ts";
@@ -49,6 +50,8 @@ export interface ManagerDeps {
   prewarmDelayMs?: number;
   /** 시험이 잠자기 감시의 시계를 바꾼다 */
   sleepWatch?: { now?: () => number; tickMs?: number; gapMs?: number; graceMs?: number };
+  /** 시험이 폴더 읽기 대역을 꽂는다 */
+  folderAccess?: FolderAccess;
 }
 
 /** 세션 첨부 폴더를 지우는 때 — 보관한 세션은 마지막 활동 뒤 30일, 색인에도 기록에도 없는 세션은 폴더를 마지막으로 고친 뒤 7일 */
@@ -78,8 +81,11 @@ export class SessionManager {
   private stopping = false;
   /** 이 데몬이 띄운 claude 의 pid 와 마지막으로 본 때 — 닫은 뒤에도 잠시 쥔다. 5초 주기의 레지스트리에 남은 제 프로세스를 「다른 곳」으로 읽지 않게 */
   private readonly ownPids = new Map<number, number>();
+  /** 세션 폴더를 동기로 읽기 전에 지나는 문 */
+  private readonly folders: FolderAccess;
 
   constructor(private readonly deps: ManagerDeps) {
+    this.folders = deps.folderAccess ?? new FolderAccess();
     this.host = {
       settings: () => deps.settings.current,
       // 셸 env 가 Chrome 값을 정했으면 그것이 이긴다
@@ -107,6 +113,7 @@ export class SessionManager {
           log("warn", "prompt history failed", { error: errorText(error) });
         }
       },
+      ensureFolder: (folder) => this.folders.ensure(folder),
     };
     this.sleepWatch = new SleepWatch({
       ...deps.sleepWatch,
@@ -406,6 +413,12 @@ export class SessionManager {
   async create(input: { cwd: string; prompt: string; attachments: string[]; model?: string; permissionMode?: PermissionMode; effort?: EffortLevel }): Promise<LiveSession> {
     // 폰에서 임의 경로를 열지 못한다 — 후보에 있는 폴더만
     if (!this.projects().some((candidate) => candidate.path === input.cwd)) throw new SessionError("등록된 프로젝트 폴더가 아닙니다.", 403);
+    // 예비를 고르며 그 폴더의 설정 파일을 동기로 읽는다 — 허용 창에 붙잡힌 폴더면 데몬이 멈추기 전에 여기서 돌려보낸다
+    try {
+      await this.folders.ensure(input.cwd);
+    } catch (error) {
+      throw new SessionError(errorText(error), 503);
+    }
     const settings = this.deps.settings.current;
     const mode = input.permissionMode ?? this.deps.state.folderMode(input.cwd) ?? settings.defaultPermissionMode;
     const model = input.model ?? settings.defaultModel;

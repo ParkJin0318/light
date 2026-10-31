@@ -71,6 +71,8 @@ export interface LiveSessionHost {
   modelsSeen(models: ModelInfo[]): void;
   /** 사람이 보낸 글을 터미널의 입력 이력에 남긴다(설정이 끄면 아무것도 하지 않는다) */
   recordPrompt(session: LiveSession, display: string): void;
+  /** 세션 폴더를 동기로 읽어도 되는지 본다 — 허용 창에 붙잡혔거나 막혔으면 할 일을 담아 던진다(`folder-access.ts`) */
+  ensureFolder(folder: string): Promise<void>;
 }
 
 export class SessionError extends Error {
@@ -343,6 +345,9 @@ export class LiveSession {
     try {
       const [executable, environment] = await Promise.all([this.host.claudeExecutable(), this.host.environment()]);
       if (executable === undefined) throw new Error("claude 실행 파일을 찾지 못했습니다. Claude Code 를 설치했는지, Mac 설정의 claude 경로가 맞는지 확인하십시오.");
+      if (generation !== this.generation) return;
+      // 아래의 폴더 설정 읽기(.mcp.json·.claude/settings*.json)는 동기다 — 폴더가 허용 창에 붙잡혀 있으면 데몬이 멈추기 전에 여기서 실패한다
+      await this.host.ensureFolder(this.cwd);
       if (generation !== this.generation) return;
       const settings = this.host.settings();
       const resume = this.host.history.transcriptPath(this.id) !== undefined;
